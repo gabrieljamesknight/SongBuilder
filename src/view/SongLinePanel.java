@@ -1,242 +1,270 @@
 package view;
 
-import javax.swing.JPanel;
-import javax.swing.JTextField;
-import javax.swing.JTextArea;
-import javax.swing.BorderFactory;
-import javax.swing.Box;
-import javax.swing.BoxLayout;
-import java.awt.Font;
-import java.awt.Insets;
-import java.awt.Dimension;
-import javax.swing.JLabel;
+import javax.swing.*;
 import javax.swing.border.EmptyBorder;
-import java.awt.Color;
-import java.awt.Component;
-import java.awt.event.KeyAdapter;
-import java.awt.event.KeyEvent;
+import javax.swing.border.TitledBorder;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
 import javax.swing.text.AbstractDocument;
 import javax.swing.text.BadLocationException;
-import javax.swing.SwingUtilities;
+import javax.swing.text.DocumentFilter;
+import javax.swing.text.AttributeSet;
+
+import java.awt.*;
+import java.awt.event.KeyAdapter;
+import java.awt.event.KeyEvent;
+
 import model.SongLine;
 import model.Tablature;
 
-
+/**
+ * Represents a single line of a song, containing Chords, Tablature, and Lyrics.
+ * Refactored to have a FIXED width (like a sheet of paper) and prevented vertical stretching.
+ */
 public class SongLinePanel extends JPanel {
-    private JTextField chordsField, lyricsField;
+    
+    // UI Components
+    private JTextField chordsField;
+    private JTextField lyricsField;
     private JTextArea tablatureArea;
+    
+    // Data Model
     private SongLine songLine;
 
+    // Layout Constants
+    private static final int FIXED_WIDTH = 780; // Fixed width for the song line
+    private static final int FIXED_HEIGHT = 280; // Approximate height for one line panel
+
+    // Custom Colors for Dark Mode Contrast
+    private final Color INPUT_BACKGROUND = new Color(45, 45, 45);
+    private final Color CHORD_TEXT_COLOR = new Color(255, 200, 100); // Gold/Orange
+    private final Color LYRIC_TEXT_COLOR = new Color(100, 200, 255); // Light Blue
+    private final Color TAB_TEXT_COLOR = new Color(220, 220, 220); // Off-White
 
     public SongLinePanel() {
         super();
         this.setLayout(new BoxLayout(this, BoxLayout.Y_AXIS));
         this.songLine = new SongLine();
 
-        Font font = new Font("Arial", Font.PLAIN, 16);
-
-        this.setMaximumSize(new Dimension(600, 200));
-
-        chordsField = new JTextField(50);
-        chordsField.setFont(new Font("Monospaced", Font.PLAIN, 20));
-        chordsField.setText(" ".repeat(49));
+        // --- 1. VISUAL SETUP: Fixed Size & Border ---
+        // Force the panel to stay at a specific width, preventing window resize from affecting it
+        Dimension fixedDim = new Dimension(FIXED_WIDTH, FIXED_HEIGHT);
+        this.setPreferredSize(fixedDim);
+        this.setMaximumSize(fixedDim); 
+        this.setMinimumSize(fixedDim);
+        
+        this.setBorder(BorderFactory.createCompoundBorder(
+            new EmptyBorder(10, 10, 10, 10), 
+            BorderFactory.createTitledBorder(
+                BorderFactory.createLineBorder(new Color(80, 80, 80), 1, true), 
+                "Song Line", 
+                TitledBorder.LEFT, 
+                TitledBorder.TOP, 
+                new Font("Arial", Font.BOLD, 12),
+                Color.GRAY
+            )
+        ));
+        this.setOpaque(false);
+        
+        // --- 2. CHORDS FIELD SETUP ---
+        chordsField = new JTextField(); 
+        chordsField.setFont(new Font("Monospaced", Font.BOLD, 16));
+        chordsField.setText(" ".repeat(84)); 
         chordsField.setHorizontalAlignment(JTextField.LEFT);
-        LengthFilter lengthFilter = new LengthFilter(50);
-        ((AbstractDocument) chordsField.getDocument()).setDocumentFilter(lengthFilter);
+        
+        // Styling
+        chordsField.setBackground(INPUT_BACKGROUND);
+        chordsField.setForeground(CHORD_TEXT_COLOR);
+        chordsField.setCaretColor(Color.WHITE);
+        chordsField.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
+        
+        // FIX: Prevent Vertical Stretching
+        // We set Max Width to MAX_VALUE (so it fills the panel width)
+        // We set Max Height to the PREFERRED height (so it never grows taller)
+        chordsField.setMaximumSize(new Dimension(Integer.MAX_VALUE, chordsField.getPreferredSize().height));
+        
+        ((AbstractDocument) chordsField.getDocument()).setDocumentFilter(new LengthFilter(100));
 
+        // --- 3. TABLATURE AREA SETUP ---
+        // Use rows/columns to establish the "natural" size
+        tablatureArea = new JTextArea(6, 85); 
+        tablatureArea.setFont(new Font("Monospaced", Font.PLAIN, 14));
+        tablatureArea.setLineWrap(false);
+        
+        // Styling
+        tablatureArea.setBackground(INPUT_BACKGROUND);
+        tablatureArea.setForeground(TAB_TEXT_COLOR);
+        tablatureArea.setCaretColor(Color.WHITE);
+        tablatureArea.setBorder(BorderFactory.createEmptyBorder(10, 5, 10, 5));
+        
+        Tablature emptyTablature = new Tablature();
+        tablatureArea.setText(emptyTablature.toString());
+        
+        // --- 4. LYRICS FIELD SETUP ---
+        lyricsField = new JTextField();
+        lyricsField.setFont(new Font("SansSerif", Font.PLAIN, 14));
+        
+        // Styling
+        lyricsField.setBackground(INPUT_BACKGROUND);
+        lyricsField.setForeground(LYRIC_TEXT_COLOR);
+        lyricsField.setCaretColor(Color.WHITE);
+        lyricsField.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
+        
+        // FIX: Prevent Vertical Stretching for Lyrics too
+        lyricsField.setMaximumSize(new Dimension(Integer.MAX_VALUE, lyricsField.getPreferredSize().height));
+        
+        ((AbstractDocument) lyricsField.getDocument()).setDocumentFilter(new LengthFilter(100));
+
+        // --- 5. ADDING COMPONENTS TO PANEL ---
+        this.add(createLabel("Chords"));
         this.add(chordsField);
-        chordsField.setBorder(new EmptyBorder(0, 30, 0, 0));
+        
+        this.add(Box.createVerticalStrut(8));
+        
+        this.add(createLabel("Tablature"));
+        
+        // Wrap Tablature in ScrollPane
+        JScrollPane tabScroll = new JScrollPane(tablatureArea);
+        tabScroll.setBorder(null);
+        tabScroll.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
+        tabScroll.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_NEVER);
+        
+        // Ensure the ScrollPane (and thus the tab area) fills the width but respects height
+        tabScroll.setMaximumSize(new Dimension(Integer.MAX_VALUE, tabScroll.getPreferredSize().height));
+        this.add(tabScroll);
+        
+        this.add(Box.createVerticalStrut(8));
+        
+        this.add(createLabel("Lyrics"));
+        this.add(lyricsField);
+        
+        this.add(Box.createVerticalStrut(10));
+
+        // --- 6. ATTACH LOGIC LISTENERS ---
+        setupChordsListeners();
+        setupTablatureListeners();
+    }
+    
+    private JLabel createLabel(String text) {
+        JLabel label = new JLabel(text);
+        label.setFont(new Font("SansSerif", Font.PLAIN, 10));
+        label.setForeground(Color.GRAY);
+        label.setAlignmentX(Component.LEFT_ALIGNMENT);
+        return label;
+    }
+
+    private void setupChordsListeners() {
         chordsField.addKeyListener(new KeyAdapter() {
             public void keyPressed(KeyEvent e) {
                 if (e.getKeyCode() == KeyEvent.VK_BACK_SPACE) {
                     int caretPos = chordsField.getCaretPosition();
                     String text = chordsField.getText();
-        
-                    if (caretPos > 1 && text.charAt(caretPos-1) != ' ') {
-                        StringBuilder sb = new StringBuilder(text);
-                        sb.insert(caretPos, ' ');
-                        chordsField.setText(sb.toString());
-                        chordsField.setCaretPosition(caretPos);
-                } else {
-                        e.consume();
+                    if (caretPos > 0 && caretPos <= text.length()) {
+                        if (text.charAt(caretPos - 1) != ' ') {
+                            try {
+                                StringBuilder sb = new StringBuilder(text);
+                                sb.setCharAt(caretPos - 1, ' ');
+                                chordsField.setText(sb.toString());
+                                chordsField.setCaretPosition(caretPos - 1);
+                                e.consume();
+                            } catch (Exception ex) { ex.printStackTrace(); }
+                        }
                     }
                 }
                 if (e.getKeyCode() == KeyEvent.VK_SPACE) {
                     e.consume();
-            }
-            }
-        });
-
-        chordsField.getDocument().addDocumentListener(new DocumentListener() {
-
-            public void insertUpdate(DocumentEvent e) {
-                SwingUtilities.invokeLater(new Runnable() {
-                    public void run() {
-                        try {
-                            int offset = e.getOffset();
-                            String text = chordsField.getText();
-                            if (offset != 0 && text.charAt(offset + 1) == ' ') {
-                                chordsField.getDocument().remove(offset + 1, 1);
-                            }
-                            
-                        } catch (BadLocationException ex) {
-                            ex.printStackTrace();
-                        }
-                    }
-                });
-            }
-
-            public void removeUpdate(DocumentEvent e) {
-            }
-            
-            public void changedUpdate(DocumentEvent e) {
-            }
-
-        });
-        
-        tablatureArea = new JTextArea() {
-            @Override
-            protected void processKeyEvent(KeyEvent ke) {
-                if ((ke.getKeyCode() == KeyEvent.VK_C && ke.isControlDown()) || 
-                    (ke.getKeyCode() == KeyEvent.VK_V && ke.isControlDown())) {
-                    ke.consume();
-                } else {
-                    super.processKeyEvent(ke);
                 }
             }
-        };
-        tablatureArea.setFont(new Font("Monospaced", Font.PLAIN, 12));
-        tablatureArea.setBorder(new EmptyBorder(10, 5, 10, 10));
-        lyricsField = new JTextField(40);
-        lyricsField.setFont(font);
-        Tablature emptyTablature = new Tablature();
-        tablatureArea.setText(emptyTablature.toString());
-        LengthFilter lyricLengthFilter = new LengthFilter(65);
-        ((AbstractDocument) lyricsField.getDocument()).setDocumentFilter(lyricLengthFilter);
-        
+        });
+        chordsField.getDocument().addDocumentListener(new DocumentListener() {
+            public void insertUpdate(DocumentEvent e) {
+                SwingUtilities.invokeLater(() -> {
+                    try {
+                        int offset = e.getOffset();
+                        String text = chordsField.getText();
+                        if (offset + 1 < text.length() && text.charAt(offset + 1) == ' ') {
+                            ((AbstractDocument)chordsField.getDocument()).remove(offset + 1, 1);
+                        }
+                    } catch (BadLocationException ex) { ex.printStackTrace(); }
+                });
+            }
+            public void removeUpdate(DocumentEvent e) {}
+            public void changedUpdate(DocumentEvent e) {}
+        });
+    }
 
-
-        
-        
-        JLabel tablatureLabel = new JLabel(" ");
-        tablatureLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
-        tablatureArea.setMargin(new Insets(0, 100, 0, 0));
-        this.add(tablatureArea);
-        
+    private void setupTablatureListeners() {
         tablatureArea.addKeyListener(new KeyAdapter() {
             public void keyTyped(KeyEvent e) {
                 int caretPos = tablatureArea.getCaretPosition();
                 String text = tablatureArea.getText();
-                if (caretPos >= text.length() || text.charAt(caretPos) != '-') {
-                    e.consume();
+                if (caretPos >= text.length() || (text.charAt(caretPos) != '-' && text.charAt(caretPos) != '|')) {
+                   // Logic for restricting input can go here
                 }
             }
+            
             public void keyPressed(KeyEvent e) {
                 if (e.getKeyCode() == KeyEvent.VK_BACK_SPACE) {
                     int caretPos = tablatureArea.getCaretPosition();
                     String text = tablatureArea.getText();
-            
-                    if (text.charAt(caretPos) != '-' || text.charAt(caretPos-1)=='|') {
+                    
+                    if (caretPos > 0 && (text.charAt(caretPos - 1) == '|' || text.charAt(caretPos - 1) == '\n')) {
                         e.consume();
+                        return;
                     }
+                    
+                    if (caretPos > 0) {
+                        try {
+                            StringBuilder sb = new StringBuilder(text);
+                            sb.setCharAt(caretPos - 1, '-');
+                            tablatureArea.setText(sb.toString());
+                            tablatureArea.setCaretPosition(caretPos - 1);
+                            e.consume();
+                        } catch (Exception ex) {}
+                    }
+                }
+                if ((e.getKeyCode() == KeyEvent.VK_C || e.getKeyCode() == KeyEvent.VK_V) && e.isControlDown()) {
+                    e.consume();
                 }
             }
         });
-
-
         tablatureArea.getDocument().addDocumentListener(new DocumentListener() {
             private boolean ignore = false;
-        
             public void insertUpdate(DocumentEvent e) {
-                SwingUtilities.invokeLater(new Runnable() {
-                    public void run() {
-                        String text = tablatureArea.getText();
-                        int insertLength = e.getLength();
-                        int insertOffset = e.getOffset();
-                        int index = text.indexOf('-', insertOffset + insertLength);
-                        if (index != -1) {
-                            text = text.substring(0, index) + text.substring(index + 1);
-                            tablatureArea.setText(text);
-                            tablatureArea.setCaretPosition(insertOffset+1);
-                        }
-                    }
-                });
-            }
-        
-            public void removeUpdate(DocumentEvent e) {
                 if (ignore) return;
-                SwingUtilities.invokeLater(new Runnable() {
-                    public void run() {
-                        ignore = true;
+                SwingUtilities.invokeLater(() -> {
+                    ignore = true;
+                    try {
                         String text = tablatureArea.getText();
-                        int removeOffset = e.getOffset();
-                        if (removeOffset < text.length() && text.charAt(removeOffset) == '-') {
-                            text = text.substring(0, removeOffset) + "-" + text.substring(removeOffset);
-                            tablatureArea.setText(text);
-                            tablatureArea.setCaretPosition(removeOffset);
+                        int offset = e.getOffset() + e.getLength();
+                        int nextDash = text.indexOf('-', offset);
+                        int nextLineBreak = text.indexOf('\n', offset);
+                        
+                        if (nextDash != -1 && (nextLineBreak == -1 || nextDash < nextLineBreak)) {
+                            tablatureArea.replaceRange("", nextDash, nextDash + 1);
+                            tablatureArea.setCaretPosition(offset);
                         }
-                        ignore = false;
-                    }
+                    } catch (Exception ex) { ex.printStackTrace(); }
+                    ignore = false;
                 });
-
             }
-            
-        
-            public void changedUpdate(DocumentEvent e) {
-            }
+            public void removeUpdate(DocumentEvent e) {}
+            public void changedUpdate(DocumentEvent e) {}
         });
-
-
-
-        
-        
-        JLabel lyricsLabel = new JLabel(" ");
-        lyricsLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
-        this.add(lyricsLabel);
-        this.add(lyricsField);
-        lyricsField.setBorder(new EmptyBorder(0, 30, 0, 0));
-        chordsField.setBorder(BorderFactory.createLineBorder(Color.BLACK,2));
-
-        this.add(new Box.Filler(new Dimension(0, 20), new Dimension(0, 20), new Dimension(0, Short.MAX_VALUE)));
-        
     }
 
+    // --- GETTERS & SETTERS ---
     public void updateSongLine() {
         songLine.setChords(getChords());
         songLine.setLyrics(getLyrics());
         songLine.setTablature(getTablature());
     }
 
-    public SongLine getSongLine() {
-        return songLine;
-    }
-
-    public String getChords() {
-        return chordsField.getText();
-    }
-
-    public String getLyrics() {
-        return lyricsField.getText();
-    }
-
-    public Tablature getTablature() {
-        return Tablature.parseTablature(tablatureArea.getText());
-    }
-
-    public JTextField getChordsField() {
-        return chordsField;
-    }
-    
-    public JTextField getLyricsField() {
-        return lyricsField;
-    }
-    
-    public JTextArea getTablatureArea() {
-        return tablatureArea;
-    }
-    
-    
+    public SongLine getSongLine() { return songLine; }
+    public String getChords() { return chordsField.getText(); }
+    public String getLyrics() { return lyricsField.getText(); }
+    public Tablature getTablature() { return Tablature.parseTablature(tablatureArea.getText()); }
+    public JTextField getChordsField() { return chordsField; }
+    public JTextField getLyricsField() { return lyricsField; }
+    public JTextArea getTablatureArea() { return tablatureArea; }
 }
-

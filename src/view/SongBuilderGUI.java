@@ -7,6 +7,7 @@ import model.Tablature;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
+import javax.swing.filechooser.FileNameExtensionFilter;
 import javax.swing.text.AbstractDocument;
 import javax.swing.text.AttributeSet;
 import javax.swing.text.BadLocationException;
@@ -14,12 +15,18 @@ import javax.swing.text.DefaultEditorKit;
 import javax.swing.text.DocumentFilter;
 
 import java.awt.*;
-import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 
+/**
+ * The main Graphical User Interface for SongBuilder.
+ * Manages the window, user interactions, and visual representation of the song.
+ * Refactored for JSON compatibility and modern FlatLaf Dark Mode aesthetics.
+ * * @author SongBuilder Helper
+ * @version 2.1
+ */
 public class SongBuilderGUI {
     private SongManager songManager;
     private JFrame frame;
@@ -27,14 +34,16 @@ public class SongBuilderGUI {
     private JButton addLineButton, saveSongButton, loadSongButton;
     private ArrayList<SongLinePanel> songLinePanels;
     private JTextField[] tuningFields;
-
+    private JScrollPane scrollPane;
+    private JPanel songLinePanelContainer;
 
     public SongBuilderGUI() {
         songManager = new SongManager();
         songLinePanels = new ArrayList<>();
-        songNameField = new JTextField(20);
         tuningFields = new JTextField[6];
         Tablature tablature = new Tablature();
+
+        // Initialize tuning fields with default values
         for (int i = 0; i < 6; i++) {
             String tuning = Character.toString(tablature.getGuitarStringTuning(i).charAt(0));
             tuningFields[i] = new JTextField(tuning, 2);
@@ -42,60 +51,38 @@ public class SongBuilderGUI {
         setupUI();
     }
 
-    private void setupUI() {
+private void setupUI() {
         frame = new JFrame("SongBuilder");
         frame.setLayout(new BoxLayout(frame.getContentPane(), BoxLayout.Y_AXIS));
-        frame.getContentPane().setBackground(Color.LIGHT_GRAY);
-        frame.setPreferredSize(new Dimension(800, 600));
+        frame.setPreferredSize(new Dimension(850, 700)); // Slightly larger default window
 
-        JMenuBar menuBar = new JMenuBar();
+        // --- Song Name Field ---
+        songNameField = new JTextField(20);
+        songNameField.setFont(new Font("Arial", Font.BOLD, 24));
+        songNameField.setHorizontalAlignment(JTextField.CENTER);
+        songNameField.setBackground(new Color(60, 60, 60));
+        songNameField.setForeground(Color.WHITE);
+        songNameField.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createLineBorder(new Color(80, 80, 80), 1),
+            BorderFactory.createEmptyBorder(5, 5, 5, 5) 
+        ));
+        Dimension SongNameFieldDim = new Dimension(400, 40); 
+        songNameField.setPreferredSize(SongNameFieldDim);
+        songNameField.setMaximumSize(SongNameFieldDim);
 
-        ActionMap actionMap = songNameField.getActionMap();
-        Action cutAction = actionMap.get(DefaultEditorKit.cutAction);
-        Action copyAction = actionMap.get(DefaultEditorKit.copyAction);
-        Action pasteAction = actionMap.get(DefaultEditorKit.pasteAction);
-
-        JMenu fileMenu = new JMenu("File");
-        menuBar.add(fileMenu);
-        JMenuItem newSongMenuItem = new JMenuItem("New File");
-        fileMenu.add(newSongMenuItem);
-        JMenuItem saveSongMenuItem = new JMenuItem("Save");
-        fileMenu.add(saveSongMenuItem);
-        JMenuItem loadSongMenuItem = new JMenuItem("Load...");
-        fileMenu.add(loadSongMenuItem);
-        JMenuItem exitSongMenuItem = new JMenuItem("Exit");
-        fileMenu.add(exitSongMenuItem);
-
-        JMenu editMenu = new JMenu("Edit");
-        menuBar.add(editMenu);
-        JMenuItem addLineMenuItem = new JMenuItem("Add Line...");
-        editMenu.add(addLineMenuItem);
-        JMenuItem removeLineMenuItem = new JMenuItem("Remove Line...");
-        editMenu.add(removeLineMenuItem);
-        JMenuItem cutMenuItem = new JMenuItem(cutAction);
-        cutMenuItem.setText("Cut");
-        JMenuItem copyMenuItem = new JMenuItem(copyAction);
-        copyMenuItem.setText("Copy");
-        JMenuItem pasteMenuItem = new JMenuItem(pasteAction);
-        pasteMenuItem.setText("Paste");
-        editMenu.add(cutMenuItem);
-        editMenu.add(copyMenuItem);
-        editMenu.add(pasteMenuItem);
+        // Menu Bar
+        JMenuBar menuBar = createMenuBar();
         frame.setJMenuBar(menuBar);
 
         Font font = new Font("Arial", Font.PLAIN, 16);
 
+        // Buttons
         addLineButton = new JButton("Add Line");
         addLineButton.setFont(font);
         saveSongButton = new JButton("Save Song");
         saveSongButton.setFont(font);
         loadSongButton = new JButton("Load Song");
         loadSongButton.setFont(font);
-
-        Dimension SongNameFieldDim = new Dimension(400, 20);
-        songNameField.setPreferredSize(SongNameFieldDim);
-        songNameField.setMaximumSize(SongNameFieldDim);
-
 
         JPanel buttonPanel = new JPanel();
         buttonPanel.setLayout(new BoxLayout(buttonPanel, BoxLayout.X_AXIS));
@@ -105,232 +92,274 @@ public class SongBuilderGUI {
         buttonPanel.add(Box.createRigidArea(new Dimension(10, 0)));
         buttonPanel.add(loadSongButton);
 
-        
-
-    
-
-
         frame.add(Box.createRigidArea(new Dimension(0, 10)));
         JLabel songNameLabel = new JLabel("Song Name:");
         songNameLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
         frame.add(songNameLabel);
         frame.add(songNameField);
-        songNameField.setHorizontalAlignment(JTextField.CENTER);
+        
         frame.add(Box.createRigidArea(new Dimension(0, 10)));
         frame.add(buttonPanel);
         frame.add(Box.createRigidArea(new Dimension(0, 10)));
-
+        
+        // --- Tuning Section ---
         JLabel tuningLabel = new JLabel("Tuning:");
         tuningLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
-        frame.add(tuningLabel); 
+        frame.add(tuningLabel);
+        
         JPanel tuningFieldsPanel = new JPanel(new FlowLayout());
         frame.add(tuningFieldsPanel);
-        Dimension tuningFieldPanelDim = new Dimension(250, 30);
+        
+        // FIX: Increased width from 250 to 400 to prevent wrapping
+        Dimension tuningFieldPanelDim = new Dimension(400, 45);
+        
         tuningFieldsPanel.setBorder(BorderFactory.createCompoundBorder(
-            BorderFactory.createEmptyBorder(0, 0, 15, 0),
+            BorderFactory.createEmptyBorder(0, 0, 0, 0),
             tuningFieldsPanel.getBorder()
         ));
-        tuningFieldsPanel.setBorder(BorderFactory.createMatteBorder(2,2 , 2, 2, Color.BLACK));
         tuningFieldsPanel.setPreferredSize(tuningFieldPanelDim);
         tuningFieldsPanel.setMaximumSize(tuningFieldPanelDim);
-        frame.add(Box.createRigidArea(new Dimension(0, 20)));
-
+        
         for (int i = tuningFields.length - 1; i >= 0; i--) {
             JTextField tuningField = tuningFields[i];
-            Dimension tuningFieldsDim = new Dimension(50, 20);
+            Dimension tuningFieldsDim = new Dimension(35, 30); // Slightly larger touch targets
             tuningField.setPreferredSize(tuningFieldsDim);
-            tuningField.setMaximumSize(tuningFieldsDim);
+            tuningField.setHorizontalAlignment(JTextField.CENTER);
             tuningFieldsPanel.add(tuningField);
-        }
-
-        for (int i = tuningFields.length - 1; i >= 0; i--) {
-            JTextField tuningField = tuningFields[i];
-            ((AbstractDocument)tuningField.getDocument()).setDocumentFilter(new LengthFilter(2));     
+            ((AbstractDocument)tuningField.getDocument()).setDocumentFilter(new LengthFilter(2));
         }      
         
-        
-        JPanel songLinePanelContainer = new JPanel();
+        // --- Song Line Container ---
+        songLinePanelContainer = new JPanel();
         songLinePanelContainer.setLayout(new BoxLayout(songLinePanelContainer, BoxLayout.Y_AXIS));
         songLinePanelContainer.setBorder(new EmptyBorder(5, 5, 45, 5));
 
-        JScrollPane scrollPane = new JScrollPane(songLinePanelContainer);     
+        scrollPane = new JScrollPane(songLinePanelContainer);     
         frame.add(scrollPane, BorderLayout.CENTER);
         scrollPane.getVerticalScrollBar().setUnitIncrement(15);
-
+        
+        // Add Initial Panel
         SongLinePanel initialPanel = new SongLinePanel();
         songLinePanels.add(initialPanel);
         songLinePanelContainer.add(initialPanel);
 
+        setupActionListeners();
 
-        newSongMenuItem.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                songLinePanels.clear();
-                songLinePanelContainer.removeAll();
+        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        frame.pack();
+        frame.setVisible(true);
+        frame.setResizable(true); 
+    }
 
-                songNameField.setText("");
-                SongLinePanel initialPanel = new SongLinePanel();
-                songLinePanels.add(initialPanel);
-                songLinePanelContainer.add(initialPanel);
-
-                frame.repaint();
-                frame.pack();
-            }
-        });
+    private JMenuBar createMenuBar() {
+        JMenuBar menuBar = new JMenuBar();
+        ActionMap actionMap = songNameField.getActionMap();
         
+        // File Menu
+        JMenu fileMenu = new JMenu("File");
+        JMenuItem newSongMenuItem = new JMenuItem("New File");
+        JMenuItem saveSongMenuItem = new JMenuItem("Save");
+        JMenuItem loadSongMenuItem = new JMenuItem("Load...");
+        JMenuItem exitSongMenuItem = new JMenuItem("Exit");
+        
+        fileMenu.add(newSongMenuItem);
+        fileMenu.add(saveSongMenuItem);
+        fileMenu.add(loadSongMenuItem);
+        fileMenu.addSeparator();
+        fileMenu.add(exitSongMenuItem);
+        
+        // Edit Menu
+        JMenu editMenu = new JMenu("Edit");
+        JMenuItem addLineMenuItem = new JMenuItem("Add Line...");
+        JMenuItem removeLineMenuItem = new JMenuItem("Remove Line...");
+        JMenuItem cutMenuItem = new JMenuItem(actionMap.get(DefaultEditorKit.cutAction));
+        cutMenuItem.setText("Cut");
+        JMenuItem copyMenuItem = new JMenuItem(actionMap.get(DefaultEditorKit.copyAction));
+        copyMenuItem.setText("Copy");
+        JMenuItem pasteMenuItem = new JMenuItem(actionMap.get(DefaultEditorKit.pasteAction));
+        pasteMenuItem.setText("Paste");
+        
+        editMenu.add(addLineMenuItem);
+        editMenu.add(removeLineMenuItem);
+        editMenu.addSeparator();
+        editMenu.add(cutMenuItem);
+        editMenu.add(copyMenuItem);
+        editMenu.add(pasteMenuItem);
+        
+        menuBar.add(fileMenu);
+        menuBar.add(editMenu);
+        
+        // Exit Action
+        exitSongMenuItem.addActionListener(e -> System.exit(0));
+        
+        // New Song Action
+        newSongMenuItem.addActionListener(e -> resetGUI());
 
-        removeLineMenuItem.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                String input = JOptionPane.showInputDialog(frame, "Enter the number of the line to remove:");
-                if (input != null && !input.isEmpty()) {
-                    try {
-                        int index = Integer.parseInt(input);
-                        songManager.removeSongLine(index-1);
-                        SongLinePanel panelToRemove = songLinePanels.remove(index-1);
+        // Remove Line Action
+        removeLineMenuItem.addActionListener(e -> {
+            String input = JOptionPane.showInputDialog(frame, "Enter the number of the line to remove:");
+            if (input != null && !input.isEmpty()) {
+                try {
+                    int index = Integer.parseInt(input);
+                    if (index > 0 && index <= songLinePanels.size()) {
+                        songManager.removeSongLine(index - 1);
+                        SongLinePanel panelToRemove = songLinePanels.remove(index - 1);
                         songLinePanelContainer.remove(panelToRemove);
+                        // Also remove any spacer components if they were added
                         frame.revalidate();
                         frame.repaint();
-                    } catch (NumberFormatException ex) {
-                        JOptionPane.showMessageDialog(frame, "Invalid index. Please enter a number.");
+                    } else {
+                        JOptionPane.showMessageDialog(frame, "Invalid line number.");
                     }
+                } catch (NumberFormatException ex) {
+                    JOptionPane.showMessageDialog(frame, "Invalid index. Please enter a number.");
                 }
             }
         });
 
-        exitSongMenuItem.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                System.exit(0);
-            }
-        });
+        return menuBar;
+    }
 
+    private void setupActionListeners() {
+        // Add Line Logic
         ActionListener addLine = e -> {
             SongLinePanel newPanel = new SongLinePanel();
             songLinePanels.add(newPanel);
-            frame.add(newPanel);
-            songLinePanelContainer.add(Box.createVerticalStrut(40));
+            songLinePanelContainer.add(Box.createVerticalStrut(20)); // Smaller spacer for cleaner look
             songLinePanelContainer.add(newPanel);
-            frame.pack();
+            
+            // Scroll to bottom
+            SwingUtilities.invokeLater(() -> {
+                JScrollBar vertical = scrollPane.getVerticalScrollBar();
+                vertical.setValue(vertical.getMaximum());
+            });
+            
+            frame.revalidate();
+            frame.repaint();
         };
-        
+
+        // Load Song Logic
         ActionListener loadSong = e -> {
             JFileChooser fileChooser = new JFileChooser();
-            int returnValue = fileChooser.showOpenDialog(null);
+            fileChooser.setFileFilter(new FileNameExtensionFilter("JSON Files", "json"));
+            
+            int returnValue = fileChooser.showOpenDialog(frame);
             if (returnValue == JFileChooser.APPROVE_OPTION) {
                 File selectedFile = fileChooser.getSelectedFile();
                 try {
                     songManager.loadSongFromFile(selectedFile.getName());
                     Song song = songManager.getCurrentSong();
+                    
+                    // Update Name
                     songNameField.setText(song.getName());
-                    SongLine firstSongLine = song.getSongLines().get(0);
-            
-                    StringBuilder allTunings = new StringBuilder();
-                    for (int i = 0; i < 6; i++) {
-                        String tuning = firstSongLine.getTablature().getGuitarStringTuning(i);
-                        allTunings.append(tuning);
-                    }
-                    for (int i = 0; i < 6; i++) {
-                        String tuning = firstSongLine.getTablature().getGuitarStringTuning(i).trim();
-                        tuningFields[i].setText(tuning);
-                    }
-    
-                    for (JPanel panel : songLinePanels) {
-                        frame.remove(panel);
-                    }
-                    songLinePanels.clear();
-                    songLinePanelContainer.removeAll();
-    
-                    for (SongLine songLine : song.getSongLines()) {
-                        SongLinePanel newPanel = new SongLinePanel();
-                        newPanel.getChordsField().setText(songLine.getChords());
-                        newPanel.getLyricsField().setText(songLine.getLyrics());
-                        newPanel.getTablatureArea().setText(songLine.getTablature().toString());
-                        frame.add(scrollPane, BorderLayout.CENTER);
-                        songLinePanelContainer.add(newPanel);
-                        songLinePanelContainer.add(Box.createVerticalStrut(50));
-                        songLinePanels.add(newPanel);
-                    }
-                    frame.pack();
-                } catch (IOException | ClassNotFoundException ex) {
+                    
+                    // Update UI components
+                    refreshUIFromModel(song);
+
+                } catch (IOException ex) {
+                    JOptionPane.showMessageDialog(frame, "Error loading file: " + ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
                     ex.printStackTrace();
                 }
             }
         };
 
+        // Save Song Logic
         ActionListener saveSong = e -> {
+            // 1. Gather Tunings
             String[] tunings = new String[6];
             for (int i = 0; i < 6; i++) {
                 tunings[i] = tuningFields[i].getText();
             }
-    
-            songManager.getCurrentSong().getSongLines().clear();
-    
-            for (SongLinePanel panel : songLinePanels) {
-                SongLinePanel songLinePanel = (SongLinePanel) panel;
-                String chords = songLinePanel.getChords();
-                String lyrics = songLinePanel.getLyrics();
-                Tablature tablature = songLinePanel.getTablature();
 
-    
-                songManager.getCurrentSong().addSongLine(new SongLine(chords, lyrics, tablature));
-            }
-    
-    
-            for (SongLine songLine : songManager.getCurrentSong().getSongLines()) {
-                Tablature tablature = songLine.getTablature();
+            // 2. Clear current song model lines
+            songManager.getCurrentSong().getSongLines().clear();
+
+            // 3. Re-populate model from UI Panels
+            for (SongLinePanel panel : songLinePanels) {
+                panel.updateSongLine(); 
+                SongLine line = panel.getSongLine();
+                
+                // Apply global tunings to this line's tablature
                 for (int i = 0; i < 6; i++) {
-                    String tuning = tunings[i];
-                    if (tuning.length() < 2) {
-                        tuning = String.format("%-2s", tuning);
-                    }
-                    tablature.setGuitarStringTuning(i, tuning);
+                    String t = tunings[i];
+                    if (t.length() < 2) t = String.format("%-2s", t);
+                    line.getTablature().setGuitarStringTuning(i, t);
                 }
+                
+                songManager.getCurrentSong().addSongLine(line);
             }
-    
-            for (int i = 0; i < songLinePanels.size(); i++) {
-                SongLinePanel panel = songLinePanels.get(i);
-                String tab = songManager.getCurrentSong().getSongLines().get(i).getTablature().toString();
-                panel.getTablatureArea().setText(tab);
-            }
-            
-            String filename = songNameField.getText() + ".ser";
-            songManager.getCurrentSong().setName(songNameField.getText());
+
+            // 4. Update Song Name
+            String name = songNameField.getText();
+            if (name.trim().isEmpty()) name = "Untitled";
+            songManager.getCurrentSong().setName(name);
+
+            // 5. Save
             try {
-                songManager.saveSongToFile(filename);
+                songManager.saveSongToFile(name + ".json");
+                JOptionPane.showMessageDialog(frame, "Song saved successfully!");
             } catch (IOException ex) {
+                JOptionPane.showMessageDialog(frame, "Error saving file: " + ex.getMessage());
                 ex.printStackTrace();
             }
         };
 
-        
-        loadSongButton.addActionListener(loadSong);
-        loadSongMenuItem.addActionListener(loadSong);
-        saveSongButton.addActionListener(saveSong);
-        saveSongMenuItem.addActionListener(saveSong);
         addLineButton.addActionListener(addLine);
-        addLineMenuItem.addActionListener(addLine);
-
-
-
-
-        
-
-        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        frame.pack();
-        frame.setVisible(true);
-        frame.setResizable(false);
+        saveSongButton.addActionListener(saveSong);
+        loadSongButton.addActionListener(loadSong);
     }
 
+    private void resetGUI() {
+        songLinePanels.clear();
+        songLinePanelContainer.removeAll();
+        songNameField.setText("");
+        SongLinePanel initialPanel = new SongLinePanel();
+        songLinePanels.add(initialPanel);
+        songLinePanelContainer.add(initialPanel);
+        frame.revalidate();
+        frame.repaint();
+    }
+    
+    /**
+     * Rebuilds the UI based on a Song object.
+     */
+    private void refreshUIFromModel(Song song) {
+        songLinePanels.clear();
+        songLinePanelContainer.removeAll();
+        
+        // Handle Tuning from first line (if exists)
+        if (!song.getSongLines().isEmpty()) {
+            SongLine firstLine = song.getSongLines().get(0);
+            for (int i = 0; i < 6; i++) {
+                String tuning = firstLine.getTablature().getGuitarStringTuning(i).trim();
+                tuningFields[i].setText(tuning);
+            }
+        }
+
+        // Recreate Panels
+        for (SongLine songLine : song.getSongLines()) {
+            SongLinePanel newPanel = new SongLinePanel();
+            
+            newPanel.getChordsField().setText(songLine.getChords());
+            newPanel.getLyricsField().setText(songLine.getLyrics());
+            newPanel.getTablatureArea().setText(songLine.getTablature().toString());
+            
+            newPanel.updateSongLine(); 
+            
+            songLinePanelContainer.add(newPanel);
+            songLinePanelContainer.add(Box.createVerticalStrut(20)); // Consistent spacing
+            songLinePanels.add(newPanel);
+        }
+        
+        frame.revalidate();
+        frame.repaint();
+    }
 }
 
-
+// Inner class for filtering text length
 class LengthFilter extends DocumentFilter {
     private int max;
-
-    LengthFilter(int max) {
-        this.max = max;
-    }
+    LengthFilter(int max) { this.max = max; }
 
     @Override
     public void insertString(FilterBypass fb, int offset, String string, AttributeSet attr) throws BadLocationException {

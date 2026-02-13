@@ -7,12 +7,15 @@ public class Tablature implements Serializable {
 
     public Tablature() {
         guitarStrings = new ArrayList<>();
-        guitarStrings.add(new GuitarString("e ", "|"+"-".repeat(77)+"|"));
-        guitarStrings.add(new GuitarString("B ", "|"+"-".repeat(77)+"|"));
-        guitarStrings.add(new GuitarString("G ", "|"+"-".repeat(77)+"|"));
-        guitarStrings.add(new GuitarString("D ", "|"+"-".repeat(77)+"|"));
-        guitarStrings.add(new GuitarString("A ", "|"+"-".repeat(77)+"|"));
-        guitarStrings.add(new GuitarString("E ", "|"+"-".repeat(77)+"|"));
+        // Increased from 77 to 95 to fill the new 780px wide panels
+        int dashCount = 88;
+        
+        guitarStrings.add(new GuitarString("e ", "|" + "-".repeat(dashCount) + "|"));
+        guitarStrings.add(new GuitarString("B ", "|" + "-".repeat(dashCount) + "|"));
+        guitarStrings.add(new GuitarString("G ", "|" + "-".repeat(dashCount) + "|"));
+        guitarStrings.add(new GuitarString("D ", "|" + "-".repeat(dashCount) + "|"));
+        guitarStrings.add(new GuitarString("A ", "|" + "-".repeat(dashCount) + "|"));
+        guitarStrings.add(new GuitarString("E ", "|" + "-".repeat(dashCount) + "|"));
     }
 
     public ArrayList<GuitarString> getTablatureStrings() {
@@ -43,7 +46,6 @@ public class Tablature implements Serializable {
         guitarStrings.get(index).setTuning(tuning);
     }
     
-
     public String getGuitarStringTuning(int index) {
         return guitarStrings.get(index).getTuning();
     }
@@ -63,8 +65,6 @@ public class Tablature implements Serializable {
         return tablature;
     }
 
-
-    
     @Override
     public String toString() {
         StringBuilder sb = new StringBuilder();
@@ -76,7 +76,4 @@ public class Tablature implements Serializable {
         }
         return sb.toString();
     }
-
-
-
 }

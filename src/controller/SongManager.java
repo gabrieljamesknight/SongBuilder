@@ -1,64 +1,136 @@
 package controller;
+
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 import java.io.*;
-
 import javax.swing.JOptionPane;
-
 import model.Song;
 import model.SongLine;
 import model.Tablature;
 
+/**
+ * Manages the lifecycle and persistence of Song objects.
+ * Refactored to use JSON serialization for improved data portability and robustness.
+ * * @author SongBuilder Helper
+ * @version 2.0
+ */
 public class SongManager {
+    
+    /** The current song being edited in the application. */
     private Song currentSong;
-    private String directoryPath = System.getProperty("user.dir");
+    
+    /** The default directory path for saving/loading files. */
+    private final String directoryPath = System.getProperty("user.dir");
+    
+    /** Gson instance configured for pretty printing JSON output. */
+    private final Gson gson;
 
-
+    /**
+     * Constructor initializes a new song and configures the JSON mapper.
+     */
     public SongManager() {
-        currentSong = new Song("New Song");
+        this.currentSong = new Song("New Song");
+        // Pretty printing makes the save file human-readable/debuggable
+        this.gson = new GsonBuilder().setPrettyPrinting().create();
     }
  
+    /**
+     * Removes a line from the current song model.
+     * * @param index The zero-based index of the line to remove.
+     */
     public void removeSongLine(int index) {
-        currentSong.removeLine(index);
+        if (index >= 0 && index < currentSong.getSongLines().size()) {
+            currentSong.removeLine(index);
+        } else {
+            System.err.println("Attempted to remove invalid song line index: " + index);
+        }
     }
 
+    /**
+     * Persists the current Song object to a JSON file.
+     * * @param filename The name of the file to save (e.g., "MySong.json").
+     * @throws IOException If file writing fails.
+     */
     public void saveSongToFile(String filename) throws IOException {
-        File file = new File(directoryPath + "/" + filename);
+        // Ensure filename ends in .json for standard compliance
+        if (!filename.toLowerCase().endsWith(".json")) {
+            filename += ".json";
+        }
+
+        File file = new File(directoryPath, filename);
+
         if (file.exists()) {
             int response = JOptionPane.showConfirmDialog(null, 
-                "Do you want to overwrite existing file?", "Confirm",
-                JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE);
+                "Do you want to overwrite the existing file?", "Confirm Overwrite",
+                JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE);
+            
             if (response == JOptionPane.NO_OPTION) {
                 return;
             }
         }
-        ObjectOutputStream out = new ObjectOutputStream(new FileOutputStream(file));
-        out.writeObject(currentSong);
-        out.close();
+
+        // Try-with-resources ensures the writer is closed automatically (Professional Standard)
+        try (Writer writer = new FileWriter(file)) {
+            gson.toJson(currentSong, writer);
+        }
     }
     
-    public void loadSongFromFile(String filename) throws IOException, ClassNotFoundException {
-    	resetTablature();
-        ObjectInputStream in = new ObjectInputStream(new FileInputStream(directoryPath + "/" + filename));
-        currentSong = (Song) in.readObject();
-        in.close();
+    /**
+     * Loads a Song object from a JSON file.
+     * * @param filename The name of the file to load.
+     * @throws IOException If file reading fails.
+     */
+    public void loadSongFromFile(String filename) throws IOException {
+        File file = new File(directoryPath, filename);
+        
+        try (Reader reader = new FileReader(file)) {
+            // Deserializes the JSON back into the Song object graph
+            Song loadedSong = gson.fromJson(reader, Song.class);
+            
+            if (loadedSong != null) {
+                this.currentSong = loadedSong;
+            } else {
+                throw new IOException("File contained invalid song data.");
+            }
+        }
     }
 
+    /**
+     * Retrieves the current song instance.
+     * * @return The active Song object.
+     */
     public Song getCurrentSong() {
         return currentSong;
     }
 
-    public Tablature getCurrentTablature(){
+    /**
+     * Retrieves the tablature from the first line of the song.
+     * Useful for determining global tuning.
+     * * @return The Tablature object of the first SongLine.
+     */
+    public Tablature getCurrentTablature() {
+        if (currentSong.getSongLines().isEmpty()) {
+            return null; 
+        }
         return currentSong.getSongLines().get(0).getTablature();
     }
     
+    /**
+     * Resets the content of all tablature lines in the current song.
+     */
     public void resetTablature() {
         for (SongLine songLine : currentSong.getSongLines()) {
-            songLine.getTablature().getTablatureStrings().clear();
+            if (songLine.getTablature() != null) {
+                songLine.getTablature().getTablatureStrings().clear();
+            }
         }
     }
 
+    /**
+     * Updates the current song instance.
+     * * @param currentSong The new Song object to set as active.
+     */
     public void setCurrentSong(Song currentSong) {
         this.currentSong = currentSong;
     }
-    
-    
 }
