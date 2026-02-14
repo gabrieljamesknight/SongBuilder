@@ -8,7 +8,7 @@ public class Tablature implements Serializable {
     public Tablature() {
         guitarStrings = new ArrayList<>();
         // Increased from 77 to 95 to fill the new 780px wide panels
-        int dashCount = 88;
+        int dashCount = 80;
         
         guitarStrings.add(new GuitarString("e ", "|" + "-".repeat(dashCount) + "|"));
         guitarStrings.add(new GuitarString("B ", "|" + "-".repeat(dashCount) + "|"));
