@@ -1,5 +1,7 @@
 package view;
 
+import javax.swing.event.CaretEvent;
+import javax.swing.event.CaretListener;
 import javax.swing.JPanel;
 import javax.swing.JTextField;
 import javax.swing.JTextArea;
@@ -28,6 +30,7 @@ public class SongLinePanel extends JPanel {
     private JTextField chordsField, lyricsField;
     private JTextArea tablatureArea;
     private SongLine songLine;
+    private boolean isProgrammaticUpdate = false;
 
 
     public SongLinePanel() {
@@ -133,6 +136,42 @@ public class SongLinePanel extends JPanel {
         tablatureLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
         tablatureArea.setMargin(new Insets(0, 100, 0, 0));
         this.add(tablatureArea);
+
+        // --- TABLATURE CARET SNAP LOGIC ---
+        // Ensures the cursor can never be placed inside the structural boundaries
+        tablatureArea.addCaretListener(new CaretListener() {
+            @Override
+            public void caretUpdate(CaretEvent e) {
+
+                if (isProgrammaticUpdate) return;
+
+                // Ignore if the user is actively highlighting text
+                if (e.getDot() != e.getMark()) return;
+
+                int dot = e.getDot();
+                String text = tablatureArea.getText();
+                
+                if (text == null || text.isEmpty()) return;
+
+                // Calculate the boundaries of the current line the caret is on
+                int lineStart = text.lastIndexOf('\n', Math.max(0, dot - 1)) + 1;
+                int lineEnd = text.indexOf('\n', dot);
+                if (lineEnd == -1) {
+                    lineEnd = text.length();
+                }
+
+                // Define the strict editable zone: after the 4-char prefix, before the 1-char suffix
+                int minPos = lineStart + 4; 
+                int maxPos = Math.max(minPos, lineEnd - 1); 
+
+                // Snap the caret back into bounds if it wanders outside
+                if (dot < minPos) {
+                    SwingUtilities.invokeLater(() -> tablatureArea.setCaretPosition(minPos));
+                } else if (dot > maxPos) {
+                    SwingUtilities.invokeLater(() -> tablatureArea.setCaretPosition(maxPos));
+                }
+            }
+        });
         
         // Tablature Key Listener
         tablatureArea.addKeyListener(new KeyAdapter() {
@@ -186,23 +225,23 @@ public class SongLinePanel extends JPanel {
                     e.consume(); // Hijack the backspace
 
                     if (caretPos > 0) {
-                        // We are trying to delete the character AT caretPos - 1
-                        if (!isEditablePosition(text, caretPos - 1)) {
-                            return; // Stop if it is outside the editable zone
-                        }
+                        if (!isEditablePosition(text, caretPos - 1)) return;
 
                         char charBefore = text.charAt(caretPos - 1);
 
-                        // If it's already a hyphen, simply move the cursor back
                         if (charBefore == '-') {
                             tablatureArea.setCaretPosition(caretPos - 1);
                         } else {
-                            // Replace the deleted note with a hyphen to preserve grid width
                             String newText = text.substring(0, caretPos - 1) + "-" + text.substring(caretPos);
                             
                             SwingUtilities.invokeLater(() -> {
-                                tablatureArea.setText(newText);
-                                tablatureArea.setCaretPosition(caretPos - 1);
+                                isProgrammaticUpdate = true; // Lock listeners
+                                try {
+                                    tablatureArea.setText(newText);
+                                    tablatureArea.setCaretPosition(caretPos - 1);
+                                } finally {
+                                    isProgrammaticUpdate = false; // Unlock listeners
+                                }
                             });
                         }
                     }
@@ -210,18 +249,20 @@ public class SongLinePanel extends JPanel {
                     e.consume(); // Hijack the delete key
 
                     if (caretPos < text.length()) {
-                        // We are trying to delete the character AT caretPos
-                        if (!isEditablePosition(text, caretPos)) {
-                            return;
-                        }
+                        if (!isEditablePosition(text, caretPos)) return;
 
                         char charAt = text.charAt(caretPos);
 
                         if (charAt != '-') {
                             String newText = text.substring(0, caretPos) + "-" + text.substring(caretPos + 1);
                             SwingUtilities.invokeLater(() -> {
-                                tablatureArea.setText(newText);
-                                tablatureArea.setCaretPosition(caretPos);
+                                isProgrammaticUpdate = true; // Lock listeners
+                                try {
+                                    tablatureArea.setText(newText);
+                                    tablatureArea.setCaretPosition(caretPos);
+                                } finally {
+                                    isProgrammaticUpdate = false; // Unlock listeners
+                                }
                             });
                         }
                     }
@@ -233,39 +274,31 @@ public class SongLinePanel extends JPanel {
         tablatureArea.getDocument().addDocumentListener(new DocumentListener() {
             private boolean ignore = false;
 
-            @Override
+           @Override
             public void insertUpdate(DocumentEvent e) {
-                if (ignore) return;
-                
-                // IGNORE bulk operations like setText() to prevent cascading hyphen deletion.
-                // We only want to balance the grid for single-character keystrokes.
-                if (e.getLength() != 1) return;
+                // Ignore if the KeyListener is currently fixing the grid, or if it's a bulk paste
+                if (isProgrammaticUpdate || e.getLength() != 1) return;
 
                 SwingUtilities.invokeLater(() -> {
-                    ignore = true;
+                    isProgrammaticUpdate = true; // Lock listeners
                     try {
                         String text = tablatureArea.getText();
                         int insertOffset = e.getOffset();
                         
-                        // Limit the hyphen search strictly to the current guitar string
                         int lineEndIndex = text.indexOf('\n', insertOffset);
                         if (lineEndIndex == -1) {
                             lineEndIndex = text.length();
                         }
                         
-                        // Find the very next hyphen after our insertion point
                         int hyphenIndex = text.indexOf('-', insertOffset + 1);
                         
-                        // Consume the hyphen to maintain strict grid width
                         if (hyphenIndex != -1 && hyphenIndex < lineEndIndex) {
                             text = text.substring(0, hyphenIndex) + text.substring(hyphenIndex + 1);
                             tablatureArea.setText(text);
-                            
-                            // Restore caret position seamlessly
                             tablatureArea.setCaretPosition(insertOffset + 1);
                         }
                     } finally {
-                        ignore = false;
+                        isProgrammaticUpdate = false; // Unlock listeners
                     }
                 });
             }
