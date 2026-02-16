@@ -45,10 +45,10 @@ public class SongBuilderGUI {
         setupUI();
     }
 
-private void setupUI() {
+    private void setupUI() {
         frame = new JFrame("SongBuilder");
         frame.setLayout(new BoxLayout(frame.getContentPane(), BoxLayout.Y_AXIS));
-        frame.setPreferredSize(new Dimension(850, 700)); // Slightly larger default window
+        frame.setPreferredSize(new Dimension(850, 700));
 
         // --- Song Name Field ---
         songNameField = new JTextField(20);
@@ -104,7 +104,6 @@ private void setupUI() {
         JPanel tuningFieldsPanel = new JPanel(new FlowLayout());
         frame.add(tuningFieldsPanel);
         
-        // FIX: Increased width from 250 to 400 to prevent wrapping
         Dimension tuningFieldPanelDim = new Dimension(400, 45);
         
         tuningFieldsPanel.setBorder(BorderFactory.createCompoundBorder(
@@ -116,7 +115,7 @@ private void setupUI() {
         
         for (int i = tuningFields.length - 1; i >= 0; i--) {
             JTextField tuningField = tuningFields[i];
-            Dimension tuningFieldsDim = new Dimension(35, 30); // Slightly larger touch targets
+            Dimension tuningFieldsDim = new Dimension(35, 30);
             tuningField.setPreferredSize(tuningFieldsDim);
             tuningField.setHorizontalAlignment(JTextField.CENTER);
             tuningFieldsPanel.add(tuningField);
@@ -189,6 +188,10 @@ private void setupUI() {
         // New Song Action
         newSongMenuItem.addActionListener(e -> resetGUI());
 
+        addLineMenuItem.addActionListener(e -> addLineAction());
+        saveSongMenuItem.addActionListener(e -> saveSongAction());
+        loadSongMenuItem.addActionListener(e -> loadSongAction());
+
         // Remove Line Action
         removeLineMenuItem.addActionListener(e -> {
             String input = JOptionPane.showInputDialog(frame, "Enter the number of the line to remove:");
@@ -215,92 +218,9 @@ private void setupUI() {
     }
 
     private void setupActionListeners() {
-        // Add Line Logic
-        ActionListener addLine = e -> {
-            SongLinePanel newPanel = new SongLinePanel();
-            songLinePanels.add(newPanel);
-            songLinePanelContainer.add(Box.createVerticalStrut(20)); // Smaller spacer for cleaner look
-            songLinePanelContainer.add(newPanel);
-            
-            // Scroll to bottom
-            SwingUtilities.invokeLater(() -> {
-                JScrollBar vertical = scrollPane.getVerticalScrollBar();
-                vertical.setValue(vertical.getMaximum());
-            });
-            
-            frame.revalidate();
-            frame.repaint();
-        };
-
-        // Load Song Logic
-        ActionListener loadSong = e -> {
-            JFileChooser fileChooser = new JFileChooser();
-            fileChooser.setFileFilter(new FileNameExtensionFilter("JSON Files", "json"));
-            
-            int returnValue = fileChooser.showOpenDialog(frame);
-            if (returnValue == JFileChooser.APPROVE_OPTION) {
-                File selectedFile = fileChooser.getSelectedFile();
-                try {
-                    songManager.loadSongFromFile(selectedFile.getName());
-                    Song song = songManager.getCurrentSong();
-                    
-                    // Update Name
-                    songNameField.setText(song.getName());
-                    
-                    // Update UI components
-                    refreshUIFromModel(song);
-
-                } catch (IOException ex) {
-                    JOptionPane.showMessageDialog(frame, "Error loading file: " + ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
-                    ex.printStackTrace();
-                }
-            }
-        };
-
-        // Save Song Logic
-        ActionListener saveSong = e -> {
-            // 1. Gather Tunings
-            String[] tunings = new String[6];
-            for (int i = 0; i < 6; i++) {
-                tunings[i] = tuningFields[i].getText();
-            }
-
-            // 2. Clear current song model lines
-            songManager.getCurrentSong().getSongLines().clear();
-
-            // 3. Re-populate model from UI Panels
-            for (SongLinePanel panel : songLinePanels) {
-                panel.updateSongLine(); 
-                SongLine line = panel.getSongLine();
-                
-                // Apply global tunings to this line's tablature
-                for (int i = 0; i < 6; i++) {
-                    String t = tunings[i];
-                    if (t.length() < 2) t = String.format("%-2s", t);
-                    line.getTablature().setGuitarStringTuning(i, t);
-                }
-                
-                songManager.getCurrentSong().addSongLine(line);
-            }
-
-            // 4. Update Song Name
-            String name = songNameField.getText();
-            if (name.trim().isEmpty()) name = "Untitled";
-            songManager.getCurrentSong().setName(name);
-
-            // 5. Save
-            try {
-                songManager.saveSongToFile(name + ".json");
-                JOptionPane.showMessageDialog(frame, "Song saved successfully!");
-            } catch (IOException ex) {
-                JOptionPane.showMessageDialog(frame, "Error saving file: " + ex.getMessage());
-                ex.printStackTrace();
-            }
-        };
-
-        addLineButton.addActionListener(addLine);
-        saveSongButton.addActionListener(saveSong);
-        loadSongButton.addActionListener(loadSong);
+        addLineButton.addActionListener(e -> addLineAction());
+        saveSongButton.addActionListener(e -> saveSongAction());
+        loadSongButton.addActionListener(e -> loadSongAction());
     }
 
     private void resetGUI() {
@@ -312,6 +232,91 @@ private void setupUI() {
         songLinePanelContainer.add(initialPanel);
         frame.revalidate();
         frame.repaint();
+    }
+
+    private void addLineAction() {
+        SongLinePanel newPanel = new SongLinePanel();
+        songLinePanels.add(newPanel);
+        songLinePanelContainer.add(Box.createVerticalStrut(20)); // Smaller spacer for cleaner look
+        songLinePanelContainer.add(newPanel);
+        
+        // Scroll to bottom
+        SwingUtilities.invokeLater(() -> {
+            JScrollBar vertical = scrollPane.getVerticalScrollBar();
+            vertical.setValue(vertical.getMaximum());
+        });
+        
+        frame.revalidate();
+        frame.repaint();
+    }
+
+    /**
+     * Opens a file chooser dialog and loads a serialized JSON song model into the UI.
+     */
+    private void loadSongAction() {
+        JFileChooser fileChooser = new JFileChooser();
+        fileChooser.setFileFilter(new FileNameExtensionFilter("JSON Files", "json"));
+        int returnValue = fileChooser.showOpenDialog(frame);
+        
+        if (returnValue == JFileChooser.APPROVE_OPTION) {
+            File selectedFile = fileChooser.getSelectedFile();
+            try {
+                songManager.loadSongFromFile(selectedFile.getName());
+                Song song = songManager.getCurrentSong();
+                
+                // Update Name
+                songNameField.setText(song.getName());
+                
+                // Update UI components
+                refreshUIFromModel(song);
+            } catch (IOException ex) {
+                JOptionPane.showMessageDialog(frame, "Error loading file: " + ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+                ex.printStackTrace();
+            }
+        }
+    }
+
+    /**
+     * Synchronizes the UI state with the data model and persists it to a JSON file.
+     */
+    private void saveSongAction() {
+        // 1. Gather Tunings
+        String[] tunings = new String[6];
+        for (int i = 0; i < 6; i++) {
+            tunings[i] = tuningFields[i].getText();
+        }
+
+        // 2. Clear current song model lines
+        songManager.getCurrentSong().getSongLines().clear();
+
+        // 3. Re-populate model from UI Panels
+        for (SongLinePanel panel : songLinePanels) {
+            panel.updateSongLine();
+            SongLine line = panel.getSongLine();
+            
+            // Apply global tunings to this line's tablature
+            for (int i = 0; i < 6; i++) {
+                String t = tunings[i];
+                if (t.length() < 2) t = String.format("%-2s", t);
+                line.getTablature().setGuitarStringTuning(i, t);
+            }
+            
+            songManager.getCurrentSong().addSongLine(line);
+        }
+
+        // 4. Update Song Name
+        String name = songNameField.getText();
+        if (name.trim().isEmpty()) name = "Untitled";
+        songManager.getCurrentSong().setName(name);
+
+        // 5. Save
+        try {
+            songManager.saveSongToFile(name + ".json");
+            JOptionPane.showMessageDialog(frame, "Song saved successfully!");
+        } catch (IOException ex) {
+            JOptionPane.showMessageDialog(frame, "Error saving file: " + ex.getMessage());
+            ex.printStackTrace();
+        }
     }
     
     /**
