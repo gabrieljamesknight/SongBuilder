@@ -323,6 +323,37 @@ public class SongLinePanel extends JPanel {
         this.add(new Box.Filler(new Dimension(0, 20), new Dimension(0, 20), new Dimension(0, Short.MAX_VALUE)));
     }
 
+    /**
+     * Safely updates the tuning prefix for a specific guitar string in the UI text area.
+     * Prevents triggering the DocumentListener by locking the programmatic update flag.
+     * * @param stringIndex The zero-based index of the guitar string (0 = thin 'e', 5 = thick 'E').
+     * @param newTuning The new tuning string to display (e.g., "D", "D#").
+     */
+    public void updateTuningVisually(int stringIndex, String newTuning) {
+        // Ensure standard 2-character formatting for alignment
+        String formattedTuning = String.format("%-2s", newTuning);
+        String currentText = tablatureArea.getText();
+        String[] lines = currentText.split("\n");
+        
+        if (stringIndex >= 0 && stringIndex < lines.length) {
+            // Replace only the first 2 characters of the specific line
+            if (lines[stringIndex].length() >= 2) {
+                lines[stringIndex] = formattedTuning + lines[stringIndex].substring(2);
+                
+                SwingUtilities.invokeLater(() -> {
+                    isProgrammaticUpdate = true; // Lock listeners
+                    try {
+                        tablatureArea.setText(String.join("\n", lines));
+                    } finally {
+                        isProgrammaticUpdate = false; // Unlock listeners
+                    }
+                });
+            }
+        }
+    }
+
+    
+
     public void updateSongLine() {
         songLine.setChords(getChords());
         songLine.setLyrics(getLyrics());
