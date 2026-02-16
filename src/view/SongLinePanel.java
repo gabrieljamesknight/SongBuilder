@@ -8,6 +8,8 @@ import javax.swing.JTextArea;
 import javax.swing.BorderFactory;
 import javax.swing.Box;
 import javax.swing.BoxLayout;
+import javax.swing.JButton;
+import java.util.function.Consumer;
 import java.awt.Font;
 import java.awt.Insets;
 import java.awt.Dimension;
@@ -31,6 +33,7 @@ public class SongLinePanel extends JPanel {
     private JTextArea tablatureArea;
     private SongLine songLine;
     private boolean isProgrammaticUpdate = false;
+    private Consumer<SongLinePanel> onRemoveCallback;
 
 
     public SongLinePanel() {
@@ -47,9 +50,25 @@ public class SongLinePanel extends JPanel {
         chordsField.setHorizontalAlignment(JTextField.LEFT);
         LengthFilter lengthFilter = new LengthFilter(49);
         ((AbstractDocument) chordsField.getDocument()).setDocumentFilter(lengthFilter);
-
-        this.add(chordsField);
         chordsField.setBorder(new EmptyBorder(0, 30, 0, 0));
+
+        // Create a horizontal container for the chords and the remove button
+        JPanel topRow = new JPanel();
+        topRow.setLayout(new BoxLayout(topRow, BoxLayout.X_AXIS));
+        topRow.add(chordsField);
+        topRow.add(Box.createHorizontalGlue());
+        
+        JButton removeButton = new JButton("🗑");
+        removeButton.setToolTipText("Remove this line");
+        removeButton.setFocusable(false); // Prevents the button from stealing keyboard focus while typing
+        removeButton.addActionListener(e -> {
+            if (this.onRemoveCallback != null) {
+                this.onRemoveCallback.accept(this);
+            }
+        });
+        topRow.add(removeButton);
+
+        this.add(topRow);
         
         // --- CHORD FIELD LOGIC (Modified) ---
         chordsField.addKeyListener(new KeyAdapter() {
@@ -352,7 +371,14 @@ public class SongLinePanel extends JPanel {
         }
     }
 
-    
+    /**
+     * Sets the callback to be triggered when the remove button is clicked.
+     *
+     * @param callback The function to execute, passing this panel as the argument.
+     */
+    public void setOnRemoveCallback(Consumer<SongLinePanel> callback) {
+        this.onRemoveCallback = callback;
+    }
 
     public void updateSongLine() {
         songLine.setChords(getChords());

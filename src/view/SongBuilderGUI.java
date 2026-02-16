@@ -189,7 +189,6 @@ public class SongBuilderGUI {
         // Edit Menu
         JMenu editMenu = new JMenu("Edit");
         JMenuItem addLineMenuItem = new JMenuItem("Add Line...");
-        JMenuItem removeLineMenuItem = new JMenuItem("Remove Line...");
         JMenuItem cutMenuItem = new JMenuItem(actionMap.get(DefaultEditorKit.cutAction));
         cutMenuItem.setText("Cut");
         JMenuItem copyMenuItem = new JMenuItem(actionMap.get(DefaultEditorKit.copyAction));
@@ -198,7 +197,6 @@ public class SongBuilderGUI {
         pasteMenuItem.setText("Paste");
         
         editMenu.add(addLineMenuItem);
-        editMenu.add(removeLineMenuItem);
         editMenu.addSeparator();
         editMenu.add(cutMenuItem);
         editMenu.add(copyMenuItem);
@@ -218,29 +216,20 @@ public class SongBuilderGUI {
         saveAsMenuItem.addActionListener(e -> saveSongAsAction());
         loadSongMenuItem.addActionListener(e -> loadSongAction());
 
-        // Remove Line Action
-        removeLineMenuItem.addActionListener(e -> {
-            String input = JOptionPane.showInputDialog(frame, "Enter the number of the line to remove:");
-            if (input != null && !input.isEmpty()) {
-                try {
-                    int index = Integer.parseInt(input);
-                    if (index > 0 && index <= songLinePanels.size()) {
-                        songManager.removeSongLine(index - 1);
-                        SongLinePanel panelToRemove = songLinePanels.remove(index - 1);
-                        songLinePanelContainer.remove(panelToRemove);
-                        // Also remove any spacer components if they were added
-                        frame.revalidate();
-                        frame.repaint();
-                    } else {
-                        JOptionPane.showMessageDialog(frame, "Invalid line number.");
-                    }
-                } catch (NumberFormatException ex) {
-                    JOptionPane.showMessageDialog(frame, "Invalid index. Please enter a number.");
-                }
-            }
-        });
-
         return menuBar;
+    }
+
+    private void removeLinePanel(SongLinePanel panelToRemove) {
+        int index = songLinePanels.indexOf(panelToRemove);
+        if (index != -1) {
+            songManager.removeSongLine(index);
+            songLinePanels.remove(index);
+            songLinePanelContainer.remove(panelToRemove);
+            
+            // Revalidate and repaint to cleanly update the UI
+            frame.revalidate();
+            frame.repaint();
+        }
     }
 
     private void setupActionListeners() {
@@ -263,6 +252,7 @@ public class SongBuilderGUI {
     private void addLineAction() {
         SongLinePanel newPanel = new SongLinePanel();
         songLinePanels.add(newPanel);
+        newPanel.setOnRemoveCallback(this::removeLinePanel);
         songLinePanelContainer.add(Box.createVerticalStrut(20)); // Smaller spacer for cleaner look
         songLinePanelContainer.add(newPanel);
         
