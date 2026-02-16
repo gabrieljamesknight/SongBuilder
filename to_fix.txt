@@ -1,1 +1,2 @@
-- When multiple characters are entered at the end of a tablature row, none of them can be deleted.
+- Tuning is not changing at all. Should make it so that it changes when the enter button is pressed or the mouse clicks elsewhere.
+- Adding a new line when there is only 1 existing makes the songlines awkwardly shift to the right.
