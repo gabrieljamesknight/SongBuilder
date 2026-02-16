@@ -311,10 +311,23 @@ public class SongBuilderGUI {
 
         // 5. Save
         try {
-            songManager.saveSongToFile(name + ".json");
-            JOptionPane.showMessageDialog(frame, "Song saved successfully!");
+            if (songManager.getCurrentFile() == null) {
+                JFileChooser fileChooser = new JFileChooser();
+                fileChooser.setDialogTitle("Save Song As...");
+                fileChooser.setFileFilter(new FileNameExtensionFilter("JSON Files", "json"));
+                fileChooser.setSelectedFile(new File(name + ".json"));
+                
+                int returnValue = fileChooser.showSaveDialog(frame);
+                if (returnValue == JFileChooser.APPROVE_OPTION) {
+                    songManager.saveSong(fileChooser.getSelectedFile());
+                    JOptionPane.showMessageDialog(frame, "Song saved successfully!");
+                }
+            } else {
+                songManager.saveSong(songManager.getCurrentFile());
+                // We perform a silent save here to keep the musician's workflow uninterrupted
+            }
         } catch (IOException ex) {
-            JOptionPane.showMessageDialog(frame, "Error saving file: " + ex.getMessage());
+            JOptionPane.showMessageDialog(frame, "Error saving file: " + ex.getMessage(), "Save Error", JOptionPane.ERROR_MESSAGE);
             ex.printStackTrace();
         }
     }
