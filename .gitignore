@@ -1,3 +1,17 @@
+# Project specific
 dumper.py
 to_fix.txt
+
+# IDE specific files
+.vscode/
+.project
 .classpath
+.settings/
+
+# Maven compiled output
+target/
+*.class
+
+# Old unmanaged dependencies
+lib/
+bin/
