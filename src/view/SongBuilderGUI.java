@@ -261,7 +261,7 @@ public class SongBuilderGUI {
         if (returnValue == JFileChooser.APPROVE_OPTION) {
             File selectedFile = fileChooser.getSelectedFile();
             try {
-                songManager.loadSongFromFile(selectedFile.getName());
+                songManager.loadSong(selectedFile); 
                 Song song = songManager.getCurrentSong();
                 
                 // Update Name

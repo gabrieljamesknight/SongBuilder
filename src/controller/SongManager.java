@@ -71,15 +71,13 @@ public class SongManager {
      * * @param filename The name of the file to load.
      * @throws IOException If file reading fails.
      */
-    public void loadSongFromFile(String filename) throws IOException {
-        File file = new File(directoryPath, filename);
-        
+    public void loadSong(File file) throws IOException {
         try (Reader reader = new FileReader(file)) {
             // Deserializes the JSON back into the Song object graph
             Song loadedSong = gson.fromJson(reader, Song.class);
-            
             if (loadedSong != null) {
                 this.currentSong = loadedSong;
+                this.currentFile = file; // Update the current file reference for future saves
             } else {
                 throw new IOException("File contained invalid song data.");
             }
