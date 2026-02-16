@@ -20,13 +20,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 
-/**
- * The main Graphical User Interface for SongBuilder.
- * Manages the window, user interactions, and visual representation of the song.
- * Refactored for JSON compatibility and modern FlatLaf Dark Mode aesthetics.
- * * @author SongBuilder Helper
- * @version 2.1
- */
+
 public class SongBuilderGUI {
     private SongManager songManager;
     private JFrame frame;
