@@ -127,7 +127,8 @@ public class SongBuilderGUI {
         songLinePanelContainer.setLayout(new BoxLayout(songLinePanelContainer, BoxLayout.Y_AXIS));
         songLinePanelContainer.setBorder(new EmptyBorder(5, 5, 45, 5));
 
-        scrollPane = new JScrollPane(songLinePanelContainer);     
+        scrollPane = new JScrollPane(songLinePanelContainer);
+        scrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_ALWAYS);    
         frame.add(scrollPane, BorderLayout.CENTER);
         scrollPane.getVerticalScrollBar().setUnitIncrement(15);
         
