@@ -1,1 +1,17 @@
-- Tuning is not changing at all. Should make it so that it changes when the enter button is pressed or the mouse clicks elsewhere.
+Problems:
+
+
+(Definite) Improvements:
+- Add a delete button next to each line instead of the current system.
+- Add more modern look to songline presentation.
+- Add a front page.
+- Add option for bass tabs.
+- Add tempo to songs.
+- Add autoscroll feature.
+- Add labels for songlines such as verse/chorus along with making them clearly numbered.
+- Make it so that songlines can be rearranged.
+
+(Maybe) Improvements:
+- Make it so that tabs can be exported and shared.
+- Add MIDI feature that plays the tabs.
+- Add AI features that can autofill chords/tabs based on what's missing.

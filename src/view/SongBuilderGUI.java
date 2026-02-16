@@ -120,7 +120,29 @@ public class SongBuilderGUI {
             tuningField.setHorizontalAlignment(JTextField.CENTER);
             tuningFieldsPanel.add(tuningField);
             ((AbstractDocument)tuningField.getDocument()).setDocumentFilter(new LengthFilter(2));
-        }      
+            
+            final int stringIndex = i; 
+            
+            /**
+             * Attach a DocumentListener for true real-time UI synchronization.
+             * This captures keystrokes, pastes, and deletions instantly without waiting for focus loss.
+             */
+            tuningField.getDocument().addDocumentListener(new javax.swing.event.DocumentListener() {
+                @Override
+                public void insertUpdate(javax.swing.event.DocumentEvent e) { update(); }
+                @Override
+                public void removeUpdate(javax.swing.event.DocumentEvent e) { update(); }
+                @Override
+                public void changedUpdate(javax.swing.event.DocumentEvent e) { update(); }
+                
+                private void update() {
+                    // Push the UI update to the end of the Event Queue to prevent concurrent modification exceptions
+                    SwingUtilities.invokeLater(() -> {
+                        applyTuningChange(stringIndex, tuningField.getText());
+                    });
+                }
+            });
+        }
         
         // --- Song Line Container ---
         songLinePanelContainer = new JPanel();
@@ -349,6 +371,22 @@ public class SongBuilderGUI {
         String name = songNameField.getText();
         if (name.trim().isEmpty()) name = "Untitled";
         songManager.getCurrentSong().setName(name);
+    }
+
+/**
+     * Propagates a tuning change from the global tuning fields 
+     * down to all active song line panels in the UI immediately.
+     * Handles empty strings gracefully to preserve formatting during backspaces.
+     * * @param stringIndex The zero-based index of the guitar string being changed.
+     * @param newTuning The new tuning value.
+     */
+    private void applyTuningChange(int stringIndex, String newTuning) {
+        // Default to a blank space if the user clears the field, maintaining the 2-character grid alignment
+        String tuningToApply = (newTuning == null || newTuning.isEmpty()) ? " " : newTuning;
+        
+        for (SongLinePanel panel : songLinePanels) {
+            panel.updateTuningVisually(stringIndex, tuningToApply);
+        }
     }
     
     /**
