@@ -8,9 +8,12 @@ import javax.swing.JTextArea;
 import javax.swing.BorderFactory;
 import javax.swing.Box;
 import javax.swing.BoxLayout;
+import java.awt.BorderLayout;
 import javax.swing.JButton;
+import java.awt.GridBagLayout;
 import java.util.function.Consumer;
 import java.awt.Font;
+import java.awt.GridBagConstraints;
 import java.awt.Insets;
 import java.awt.Dimension;
 import javax.swing.JLabel;
@@ -38,11 +41,11 @@ public class SongLinePanel extends JPanel {
 
     public SongLinePanel() {
         super();
-        this.setLayout(new BoxLayout(this, BoxLayout.Y_AXIS));
+        this.setLayout(new GridBagLayout());
         this.songLine = new SongLine();
         Font font = new Font("Arial", Font.PLAIN, 16);
 
-        this.setMaximumSize(new Dimension(600, 200));
+        this.setMaximumSize(new Dimension(850, 200));
 
         chordsField = new JTextField(50);
         chordsField.setFont(new Font("Monospaced", Font.PLAIN, 20));
@@ -52,23 +55,6 @@ public class SongLinePanel extends JPanel {
         ((AbstractDocument) chordsField.getDocument()).setDocumentFilter(lengthFilter);
         chordsField.setBorder(new EmptyBorder(0, 30, 0, 0));
 
-        // Create a horizontal container for the chords and the remove button
-        JPanel topRow = new JPanel();
-        topRow.setLayout(new BoxLayout(topRow, BoxLayout.X_AXIS));
-        topRow.add(chordsField);
-        topRow.add(Box.createHorizontalGlue());
-        
-        JButton removeButton = new JButton("🗑");
-        removeButton.setToolTipText("Remove this line");
-        removeButton.setFocusable(false); // Prevents the button from stealing keyboard focus while typing
-        removeButton.addActionListener(e -> {
-            if (this.onRemoveCallback != null) {
-                this.onRemoveCallback.accept(this);
-            }
-        });
-        topRow.add(removeButton);
-
-        this.add(topRow);
         
         // --- CHORD FIELD LOGIC (Modified) ---
         chordsField.addKeyListener(new KeyAdapter() {
@@ -142,8 +128,9 @@ public class SongLinePanel extends JPanel {
         };
         
         tablatureArea.setFont(new Font("Monospaced", Font.PLAIN, 12));
-        tablatureArea.setBorder(new EmptyBorder(10, 5, 10, 10));
-        lyricsField = new JTextField(40);
+        tablatureArea.setBorder(new EmptyBorder(5, 5, 5, 5));
+        // Remove the hardcoded column count (40)
+        lyricsField = new JTextField();
         lyricsField.setFont(font);
         Tablature emptyTablature = new Tablature();
         tablatureArea.setText(emptyTablature.toString());
@@ -151,10 +138,19 @@ public class SongLinePanel extends JPanel {
         LengthFilter lyricLengthFilter = new LengthFilter(65);
         ((AbstractDocument) lyricsField.getDocument()).setDocumentFilter(lyricLengthFilter);
         
-        JLabel tablatureLabel = new JLabel(" ");
-        tablatureLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
-        tablatureArea.setMargin(new Insets(0, 100, 0, 0));
-        this.add(tablatureArea);
+
+        
+        JButton removeButton = new JButton("🗑");
+        removeButton.setToolTipText("Remove this line");
+        removeButton.setFocusable(false); 
+        removeButton.addActionListener(e -> {
+            if (this.onRemoveCallback != null) {
+                this.onRemoveCallback.accept(this);
+            }
+        });
+    
+
+
 
         // --- TABLATURE CARET SNAP LOGIC ---
         // Ensures the cursor can never be placed inside the structural boundaries
@@ -332,14 +328,75 @@ public class SongLinePanel extends JPanel {
             @Override
             public void changedUpdate(DocumentEvent e) {}
         });
-
-        JLabel lyricsLabel = new JLabel(" ");
-        lyricsLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
-        this.add(lyricsLabel);
-        this.add(lyricsField);
+        
         lyricsField.setBorder(new EmptyBorder(0, 30, 0, 0));
+        
+
         chordsField.setBorder(BorderFactory.createLineBorder(Color.BLACK,2));
-        this.add(new Box.Filler(new Dimension(0, 20), new Dimension(0, 20), new Dimension(0, Short.MAX_VALUE)));
+
+        // --- 1. ENFORCE UNIFORM SIZES ---
+        // Lock the width strictly to 615px for all three fields to perfectly align them.
+        // Assign specific heights to differentiate the top and bottom text fields.
+        Dimension chordsDim = new Dimension(595, 35);
+        
+        Dimension tabDim    = new Dimension(595, 100);
+        
+        Dimension lyricsDim = new Dimension(595, 26);
+
+        // Apply iron-clad sizing to Chords
+        chordsField.setPreferredSize(chordsDim);
+        chordsField.setMinimumSize(chordsDim);
+        chordsField.setMaximumSize(chordsDim);
+        
+        // Apply iron-clad sizing to Tablature
+        tablatureArea.setPreferredSize(tabDim);
+        tablatureArea.setMinimumSize(tabDim);
+        tablatureArea.setMaximumSize(tabDim);
+        
+        // Apply iron-clad sizing to Lyrics
+        lyricsField.setPreferredSize(lyricsDim);
+        lyricsField.setMinimumSize(lyricsDim);
+        lyricsField.setMaximumSize(lyricsDim);
+
+        // --- 2. GRIDBAG PLACEMENT ---
+        GridBagConstraints gbc = new GridBagConstraints();
+        
+        // This is the magic line: it forces the components to stretch and fill the cell's allocated width equally.
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+
+        // Chords (Top Row, Center Column)
+        gbc.gridx = 1; 
+        gbc.gridy = 0; 
+        gbc.insets = new Insets(0, 0, 5, 0); // 5px gap below
+        gbc.anchor = GridBagConstraints.CENTER;
+        this.add(chordsField, gbc);
+
+        // Tablature (Middle Row, Center Column)
+        gbc.gridy = 1; 
+        this.add(tablatureArea, gbc);
+
+        // Bin Button (Middle Row, Right Column)
+        gbc.gridx = 2; 
+        gbc.gridy = 1; 
+        gbc.insets = new Insets(0, 15, 5, 0); // 15px gap to the left of the button
+        gbc.anchor = GridBagConstraints.WEST; // Anchor to the left side of its cell
+        this.add(removeButton, gbc);
+
+        // Lyrics (Bottom Row, Center Column)
+        gbc.gridx = 1; 
+        gbc.gridy = 2; 
+        gbc.insets = new Insets(0, 0, 15, 0); // 15px gap below to separate song lines
+        gbc.anchor = GridBagConstraints.CENTER;
+        this.add(lyricsField, gbc);
+
+        // Dummy Spacer (Middle Row, Left Column)
+        // This invisibly counter-balances the button's width on the right,
+        // ensuring the center column stays in the ABSOLUTE middle of the window.
+        Component dummy = Box.createRigidArea(new Dimension(55, 0));
+        gbc.gridx = 0; 
+        gbc.gridy = 1;
+        gbc.insets = new Insets(0, 0, 0, 0);
+        this.add(dummy, gbc);
     }
 
     /**
