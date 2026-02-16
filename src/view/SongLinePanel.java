@@ -134,63 +134,150 @@ public class SongLinePanel extends JPanel {
         tablatureArea.setMargin(new Insets(0, 100, 0, 0));
         this.add(tablatureArea);
         
-        // Original Tablature Key Listener
+        // Tablature Key Listener
         tablatureArea.addKeyListener(new KeyAdapter() {
+            
+            /**
+             * Helper method to determine if a given text index is within the editable tablature area.
+             * Protects the 4-character prefix (e.g., "e ||") and the 1-character suffix ("|").
+             */
+            private boolean isEditablePosition(String text, int pos) {
+                int lineStart = text.lastIndexOf('\n', pos - 1) + 1;
+                int lineEnd = text.indexOf('\n', pos);
+                if (lineEnd == -1) {
+                    lineEnd = text.length();
+                }
+                
+                // Editable area strictly starts after the 4-character prefix and ends before the 1-character suffix
+                return pos >= (lineStart + 4) && pos < (lineEnd - 1);
+            }
+
+            @Override
             public void keyTyped(KeyEvent e) {
                 int caretPos = tablatureArea.getCaretPosition();
                 String text = tablatureArea.getText();
-                if (caretPos >= text.length() || text.charAt(caretPos) != '-') {
+
+                // Prevent typing out of bounds or typing control characters
+                if (caretPos >= text.length() || Character.isISOControl(e.getKeyChar())) {
+                    e.consume();
+                    return;
+                }
+
+                // Strictly enforce typing only within the editable tablature area
+                if (!isEditablePosition(text, caretPos)) {
                     e.consume();
                 }
             }
+
+            @Override
             public void keyPressed(KeyEvent e) {
-                if (e.getKeyCode() == KeyEvent.VK_BACK_SPACE) {
-                    int caretPos = tablatureArea.getCaretPosition();
-                    String text = tablatureArea.getText();
-                    if (text.charAt(caretPos) != '-' || text.charAt(caretPos-1)=='|') {
+                // Prevent multi-character selection deletion to preserve the structural grid
+                if (tablatureArea.getSelectionStart() != tablatureArea.getSelectionEnd()) {
+                    if (e.getKeyCode() == KeyEvent.VK_BACK_SPACE || e.getKeyCode() == KeyEvent.VK_DELETE) {
                         e.consume();
+                    }
+                    return;
+                }
+
+                int caretPos = tablatureArea.getCaretPosition();
+                String text = tablatureArea.getText();
+
+                if (e.getKeyCode() == KeyEvent.VK_BACK_SPACE) {
+                    e.consume(); // Hijack the backspace
+
+                    if (caretPos > 0) {
+                        // We are trying to delete the character AT caretPos - 1
+                        if (!isEditablePosition(text, caretPos - 1)) {
+                            return; // Stop if it is outside the editable zone
+                        }
+
+                        char charBefore = text.charAt(caretPos - 1);
+
+                        // If it's already a hyphen, simply move the cursor back
+                        if (charBefore == '-') {
+                            tablatureArea.setCaretPosition(caretPos - 1);
+                        } else {
+                            // Replace the deleted note with a hyphen to preserve grid width
+                            String newText = text.substring(0, caretPos - 1) + "-" + text.substring(caretPos);
+                            
+                            SwingUtilities.invokeLater(() -> {
+                                tablatureArea.setText(newText);
+                                tablatureArea.setCaretPosition(caretPos - 1);
+                            });
+                        }
+                    }
+                } else if (e.getKeyCode() == KeyEvent.VK_DELETE) {
+                    e.consume(); // Hijack the delete key
+
+                    if (caretPos < text.length()) {
+                        // We are trying to delete the character AT caretPos
+                        if (!isEditablePosition(text, caretPos)) {
+                            return;
+                        }
+
+                        char charAt = text.charAt(caretPos);
+
+                        if (charAt != '-') {
+                            String newText = text.substring(0, caretPos) + "-" + text.substring(caretPos + 1);
+                            SwingUtilities.invokeLater(() -> {
+                                tablatureArea.setText(newText);
+                                tablatureArea.setCaretPosition(caretPos);
+                            });
+                        }
                     }
                 }
             }
         });
 
-        // Original Tablature Document Listener
+        // Tablature Document Listener
         tablatureArea.getDocument().addDocumentListener(new DocumentListener() {
             private boolean ignore = false;
-        
+
+            @Override
             public void insertUpdate(DocumentEvent e) {
-                SwingUtilities.invokeLater(new Runnable() {
-                    public void run() {
-                        String text = tablatureArea.getText();
-                        int insertLength = e.getLength();
-                        int insertOffset = e.getOffset();
-                        int index = text.indexOf('-', insertOffset + insertLength);
-                        if (index != -1) {
-                            text = text.substring(0, index) + text.substring(index + 1);
-                            tablatureArea.setText(text);
-                            tablatureArea.setCaretPosition(insertOffset+1);
-                        }
-                    }
-                });
-            }
-        
-            public void removeUpdate(DocumentEvent e) {
                 if (ignore) return;
-                SwingUtilities.invokeLater(new Runnable() {
-                    public void run() {
-                        ignore = true;
+                
+                // IGNORE bulk operations like setText() to prevent cascading hyphen deletion.
+                // We only want to balance the grid for single-character keystrokes.
+                if (e.getLength() != 1) return;
+
+                SwingUtilities.invokeLater(() -> {
+                    ignore = true;
+                    try {
                         String text = tablatureArea.getText();
-                        int removeOffset = e.getOffset();
-                        if (removeOffset < text.length() && text.charAt(removeOffset) == '-') {
-                            text = text.substring(0, removeOffset) + "-" + text.substring(removeOffset);
-                            tablatureArea.setText(text);
-                            tablatureArea.setCaretPosition(removeOffset);
+                        int insertOffset = e.getOffset();
+                        
+                        // Limit the hyphen search strictly to the current guitar string
+                        int lineEndIndex = text.indexOf('\n', insertOffset);
+                        if (lineEndIndex == -1) {
+                            lineEndIndex = text.length();
                         }
+                        
+                        // Find the very next hyphen after our insertion point
+                        int hyphenIndex = text.indexOf('-', insertOffset + 1);
+                        
+                        // Consume the hyphen to maintain strict grid width
+                        if (hyphenIndex != -1 && hyphenIndex < lineEndIndex) {
+                            text = text.substring(0, hyphenIndex) + text.substring(hyphenIndex + 1);
+                            tablatureArea.setText(text);
+                            
+                            // Restore caret position seamlessly
+                            tablatureArea.setCaretPosition(insertOffset + 1);
+                        }
+                    } finally {
                         ignore = false;
                     }
                 });
             }
-            
+
+            @Override
+            public void removeUpdate(DocumentEvent e) {
+                // Intentionally left blank.
+                // Grid preservation during deletion is now strictly handled by 
+                // intercepting Backspace/Delete in the KeyListener.
+            }
+
+            @Override
             public void changedUpdate(DocumentEvent e) {}
         });
 
