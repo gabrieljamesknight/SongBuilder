@@ -1,0 +1,2 @@
+- Save and load buttons in the drop down menu do nothing.
+- When multiple characters are entered at the end of a tablature row, none of them can be deleted.
