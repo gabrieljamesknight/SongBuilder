@@ -25,6 +25,8 @@ public class SongManager {
     /** Gson instance configured for pretty printing JSON output. */
     private final Gson gson;
 
+    private File currentFile; // Tracks the currently loaded/saved file for better user experience
+
     /**
      * Constructor initializes a new song and configures the JSON mapper.
      */
@@ -51,28 +53,17 @@ public class SongManager {
      * * @param filename The name of the file to save (e.g., "MySong.json").
      * @throws IOException If file writing fails.
      */
-    public void saveSongToFile(String filename) throws IOException {
-        // Ensure filename ends in .json for standard compliance
+    public void saveSong(File file) throws IOException {
+        String filename = file.getName();
         if (!filename.toLowerCase().endsWith(".json")) {
-            filename += ".json";
+            file = new File(file.getParentFile(), filename + ".json");
         }
 
-        File file = new File(directoryPath, filename);
-
-        if (file.exists()) {
-            int response = JOptionPane.showConfirmDialog(null, 
-                "Do you want to overwrite the existing file?", "Confirm Overwrite",
-                JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE);
-            
-            if (response == JOptionPane.NO_OPTION) {
-                return;
-            }
-        }
-
-        // Try-with-resources ensures the writer is closed automatically (Professional Standard)
         try (Writer writer = new FileWriter(file)) {
             gson.toJson(currentSong, writer);
         }
+        
+        this.currentFile = file;
     }
     
     /**
@@ -80,15 +71,13 @@ public class SongManager {
      * * @param filename The name of the file to load.
      * @throws IOException If file reading fails.
      */
-    public void loadSongFromFile(String filename) throws IOException {
-        File file = new File(directoryPath, filename);
-        
+    public void loadSong(File file) throws IOException {
         try (Reader reader = new FileReader(file)) {
             // Deserializes the JSON back into the Song object graph
             Song loadedSong = gson.fromJson(reader, Song.class);
-            
             if (loadedSong != null) {
                 this.currentSong = loadedSong;
+                this.currentFile = file; // Update the current file reference for future saves
             } else {
                 throw new IOException("File contained invalid song data.");
             }
@@ -101,6 +90,10 @@ public class SongManager {
      */
     public Song getCurrentSong() {
         return currentSong;
+    }
+
+    public File getCurrentFile() {
+        return currentFile;
     }
 
     /**
@@ -132,5 +125,9 @@ public class SongManager {
      */
     public void setCurrentSong(Song currentSong) {
         this.currentSong = currentSong;
+    }
+
+    public void setCurrentFile(File file) {
+        this.currentFile = file;
     }
 }

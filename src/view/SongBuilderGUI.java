@@ -152,11 +152,13 @@ public class SongBuilderGUI {
         JMenu fileMenu = new JMenu("File");
         JMenuItem newSongMenuItem = new JMenuItem("New File");
         JMenuItem saveSongMenuItem = new JMenuItem("Save");
+        JMenuItem saveAsMenuItem = new JMenuItem("Save As...");
         JMenuItem loadSongMenuItem = new JMenuItem("Load...");
         JMenuItem exitSongMenuItem = new JMenuItem("Exit");
         
         fileMenu.add(newSongMenuItem);
         fileMenu.add(saveSongMenuItem);
+        fileMenu.add(saveAsMenuItem);
         fileMenu.add(loadSongMenuItem);
         fileMenu.addSeparator();
         fileMenu.add(exitSongMenuItem);
@@ -190,6 +192,7 @@ public class SongBuilderGUI {
 
         addLineMenuItem.addActionListener(e -> addLineAction());
         saveSongMenuItem.addActionListener(e -> saveSongAction());
+        saveAsMenuItem.addActionListener(e -> saveSongAsAction());
         loadSongMenuItem.addActionListener(e -> loadSongAction());
 
         // Remove Line Action
@@ -261,7 +264,7 @@ public class SongBuilderGUI {
         if (returnValue == JFileChooser.APPROVE_OPTION) {
             File selectedFile = fileChooser.getSelectedFile();
             try {
-                songManager.loadSongFromFile(selectedFile.getName());
+                songManager.loadSong(selectedFile); 
                 Song song = songManager.getCurrentSong();
                 
                 // Update Name
@@ -280,16 +283,54 @@ public class SongBuilderGUI {
      * Synchronizes the UI state with the data model and persists it to a JSON file.
      */
     private void saveSongAction() {
-        // 1. Gather Tunings
+        if (songManager.getCurrentFile() == null) {
+            saveSongAsAction();
+        } else {
+            updateModelFromUI();
+            try {
+                songManager.saveSong(songManager.getCurrentFile());
+                // Silent save for uninterrupted workflow
+            } catch (IOException ex) {
+                JOptionPane.showMessageDialog(frame, "Error saving file: " + ex.getMessage(), "Save Error", JOptionPane.ERROR_MESSAGE);
+                ex.printStackTrace();
+            }
+        }
+    }
+
+    private void saveSongAsAction() {
+        updateModelFromUI();
+        
+        JFileChooser fileChooser = new JFileChooser();
+        fileChooser.setDialogTitle("Save Song As...");
+        fileChooser.setFileFilter(new FileNameExtensionFilter("JSON Files", "json"));
+        fileChooser.setSelectedFile(new File(songManager.getCurrentSong().getName() + ".json"));
+        
+        int returnValue = fileChooser.showSaveDialog(frame);
+        if (returnValue == JFileChooser.APPROVE_OPTION) {
+            try {
+                songManager.saveSong(fileChooser.getSelectedFile());
+                JOptionPane.showMessageDialog(frame, "Song saved successfully!");
+            } catch (IOException ex) {
+                JOptionPane.showMessageDialog(frame, "Error saving file: " + ex.getMessage(), "Save Error", JOptionPane.ERROR_MESSAGE);
+                ex.printStackTrace();
+            }
+        }
+    }
+
+    /**
+     * Parses the current UI state and updates the underlying Song model.
+     */
+    private void updateModelFromUI() {
+        // Gather Tunings
         String[] tunings = new String[6];
         for (int i = 0; i < 6; i++) {
             tunings[i] = tuningFields[i].getText();
         }
 
-        // 2. Clear current song model lines
+        // Clear current song model lines
         songManager.getCurrentSong().getSongLines().clear();
 
-        // 3. Re-populate model from UI Panels
+        // Re-populate model from UI Panels
         for (SongLinePanel panel : songLinePanels) {
             panel.updateSongLine();
             SongLine line = panel.getSongLine();
@@ -300,23 +341,13 @@ public class SongBuilderGUI {
                 if (t.length() < 2) t = String.format("%-2s", t);
                 line.getTablature().setGuitarStringTuning(i, t);
             }
-            
             songManager.getCurrentSong().addSongLine(line);
         }
 
-        // 4. Update Song Name
+        // Update Song Name
         String name = songNameField.getText();
         if (name.trim().isEmpty()) name = "Untitled";
         songManager.getCurrentSong().setName(name);
-
-        // 5. Save
-        try {
-            songManager.saveSongToFile(name + ".json");
-            JOptionPane.showMessageDialog(frame, "Song saved successfully!");
-        } catch (IOException ex) {
-            JOptionPane.showMessageDialog(frame, "Error saving file: " + ex.getMessage());
-            ex.printStackTrace();
-        }
     }
     
     /**
