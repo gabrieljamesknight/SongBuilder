@@ -62,8 +62,9 @@ public class SongLinePanel extends JPanel {
                  int caretPos = chordsField.getCaretPosition();
                  String text = chordsField.getText();
                  
-                 // If the char at this position is NOT a space, block the input
-                if (caretPos >= 48 || 
+                 // This guarantees there is always a trailing space for the DocumentListener 
+                 // to safely consume, preventing the text from shifting or getting locked.
+                if (caretPos >= text.length() - 1 || 
                     (caretPos < text.length() && text.charAt(caretPos) != ' ' && !Character.isISOControl(e.getKeyChar()))) {
                      e.consume();
                  }
@@ -121,7 +122,7 @@ public class SongLinePanel extends JPanel {
             @Override
             public void insertUpdate(DocumentEvent e) {
                 // Only trim the next space if the user typed a visible chord character.
-                // This stops programmatic space replacements (from backspace) from shrinking the field!
+                // This stops programmatic space replacements (from backspace) from shrinking the field
                 if (e.getLength() == 1) {
                     SwingUtilities.invokeLater(() -> { // IDE Warning Fix: converted to lambda
                         try {

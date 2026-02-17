@@ -1,8 +1,7 @@
 Problems:
-- When a chord is entered in the last position, it moves all other chords.
+- The 1st and 2nd songline are further away from each other than all following songlines.
 
 (Definite) Improvements:
-- Add a delete button next to each line instead of the current system.
 - Add more modern look to songline presentation.
 - Add a front page.
 - Add option for bass tabs.
