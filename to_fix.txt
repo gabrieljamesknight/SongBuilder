@@ -1,5 +1,6 @@
 Problems:
 - The 1st and 2nd songline are further away from each other than all following songlines.
+- If a chord is entered in the last position with a character directly preceding it, this pushes other chords back.
 
 (Definite) Improvements:
 - Add more modern look to songline presentation.
