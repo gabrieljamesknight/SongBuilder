@@ -1,32 +1,31 @@
 package view;
 
-import javax.swing.event.CaretEvent;
-import javax.swing.event.CaretListener;
-import javax.swing.JPanel;
-import javax.swing.JTextField;
-import javax.swing.JTextArea;
-import javax.swing.BorderFactory;
-import javax.swing.Box;
-import javax.swing.BoxLayout;
-import java.awt.BorderLayout;
-import javax.swing.JButton;
-import java.awt.GridBagLayout;
-import java.util.function.Consumer;
-import java.awt.Font;
-import java.awt.GridBagConstraints;
-import java.awt.Insets;
-import java.awt.Dimension;
-import javax.swing.JLabel;
-import javax.swing.border.EmptyBorder;
 import java.awt.Color;
 import java.awt.Component;
+import java.awt.Dimension;
+import java.awt.Font;
+import java.awt.GridBagConstraints;
+import java.awt.GridBagLayout;
+import java.awt.Insets;
 import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
+import java.util.function.Consumer;
+
+import javax.swing.BorderFactory;
+import javax.swing.Box;
+import javax.swing.JButton;
+import javax.swing.JPanel;
+import javax.swing.JTextArea;
+import javax.swing.JTextField;
+import javax.swing.SwingUtilities;
+import javax.swing.border.EmptyBorder;
+import javax.swing.event.CaretEvent;
+import javax.swing.event.CaretListener;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
 import javax.swing.text.AbstractDocument;
 import javax.swing.text.BadLocationException;
-import javax.swing.SwingUtilities;
+
 import model.SongLine;
 import model.Tablature;
 
@@ -47,7 +46,7 @@ public class SongLinePanel extends JPanel {
 
         this.setMaximumSize(new Dimension(850, 200));
 
-        chordsField = new JTextField(50);
+        chordsField = new JTextField();
         chordsField.setFont(new Font("Monospaced", Font.PLAIN, 20));
         chordsField.setText(" ".repeat(48));
         chordsField.setHorizontalAlignment(JTextField.LEFT);
@@ -56,9 +55,9 @@ public class SongLinePanel extends JPanel {
         chordsField.setBorder(new EmptyBorder(0, 30, 0, 0));
 
         
-        // --- CHORD FIELD LOGIC (Modified) ---
+        // --- CHORD FIELD LOGIC ---
         chordsField.addKeyListener(new KeyAdapter() {
-            // NEW: Consume input if the position is already occupied
+            @Override
             public void keyTyped(KeyEvent e) {
                  int caretPos = chordsField.getCaretPosition();
                  String text = chordsField.getText();
@@ -68,49 +67,82 @@ public class SongLinePanel extends JPanel {
                     (caretPos < text.length() && text.charAt(caretPos) != ' ' && !Character.isISOControl(e.getKeyChar()))) {
                      e.consume();
                  }
-
-                 
             }
 
-            // Original Backspace Logic [cite: 16]
+            @Override
             public void keyPressed(KeyEvent e) {
-                if (e.getKeyCode() == KeyEvent.VK_BACK_SPACE) {
-                    int caretPos = chordsField.getCaretPosition();
-                    String text = chordsField.getText();
+                int caretPos = chordsField.getCaretPosition();
+                String text = chordsField.getText();
 
-                    if (caretPos > 1 && text.charAt(caretPos - 1) != ' ') {
-                        StringBuilder sb = new StringBuilder(text);
-                        sb.insert(caretPos, ' ');
-                        chordsField.setText(sb.toString());
-                        chordsField.setCaretPosition(caretPos);
+                if (e.getKeyCode() == KeyEvent.VK_BACK_SPACE) {
+                    // Prevent bulk deletion from breaking the grid
+                    if (chordsField.getSelectionStart() != chordsField.getSelectionEnd()) {
+                        e.consume();
+                        return;
+                    }
+                    
+                    if (caretPos > 0) {
+                        e.consume(); // Hijack the backspace
+                        try {
+                            // Explicitly replace the preceding character with a space
+                            chordsField.getDocument().remove(caretPos - 1, 1);
+                            chordsField.getDocument().insertString(caretPos - 1, " ", null);
+                            chordsField.setCaretPosition(caretPos - 1);
+                        } catch (BadLocationException ex) {
+                            ex.printStackTrace(); // IDE Warning Fix
+                        }
                     } else {
                         e.consume();
                     }
-                }
-                if (e.getKeyCode() == KeyEvent.VK_SPACE) {
+                } else if (e.getKeyCode() == KeyEvent.VK_DELETE) {
+                    if (chordsField.getSelectionStart() != chordsField.getSelectionEnd()) {
+                        e.consume();
+                        return;
+                    }
+
+                    if (caretPos < text.length()) {
+                        e.consume(); // Hijack the delete key
+                        try {
+                            chordsField.getDocument().remove(caretPos, 1);
+                            chordsField.getDocument().insertString(caretPos, " ", null);
+                            chordsField.setCaretPosition(caretPos);
+                        } catch (BadLocationException ex) {
+                            ex.printStackTrace(); // IDE Warning Fix
+                        }
+                    }
+                } else if (e.getKeyCode() == KeyEvent.VK_SPACE) {
                     e.consume();
                 }
             }
         });
 
-        // Original DocumentListener for Chords
+        // DocumentListener for Chords
         chordsField.getDocument().addDocumentListener(new DocumentListener() {
+            @Override
             public void insertUpdate(DocumentEvent e) {
-                SwingUtilities.invokeLater(new Runnable() {
-                    public void run() {
+                // Only trim the next space if the user typed a visible chord character.
+                // This stops programmatic space replacements (from backspace) from shrinking the field!
+                if (e.getLength() == 1) {
+                    SwingUtilities.invokeLater(() -> { // IDE Warning Fix: converted to lambda
                         try {
                             int offset = e.getOffset();
                             String text = chordsField.getText();
-                            if (offset != 0 && text.charAt(offset + 1) == ' ') {
+                            String insertedChar = text.substring(offset, offset + 1);
+                            
+                            if (!insertedChar.equals(" ") && offset + 1 < text.length() && text.charAt(offset + 1) == ' ') {
                                 chordsField.getDocument().remove(offset + 1, 1);
                             }
                         } catch (BadLocationException ex) {
-                            ex.printStackTrace();
+                            ex.printStackTrace(); // IDE Warning Fix
                         }
-                    }
-                });
+                    });
+                }
             }
+            
+            @Override
             public void removeUpdate(DocumentEvent e) {}
+            
+            @Override
             public void changedUpdate(DocumentEvent e) {}
         });
 
@@ -287,8 +319,6 @@ public class SongLinePanel extends JPanel {
 
         // Tablature Document Listener
         tablatureArea.getDocument().addDocumentListener(new DocumentListener() {
-            private boolean ignore = false;
-
            @Override
             public void insertUpdate(DocumentEvent e) {
                 // Ignore if the KeyListener is currently fixing the grid, or if it's a bulk paste
@@ -306,7 +336,6 @@ public class SongLinePanel extends JPanel {
                         }
                         
                         int hyphenIndex = text.indexOf('-', insertOffset + 1);
-                        
                         if (hyphenIndex != -1 && hyphenIndex < lineEndIndex) {
                             text = text.substring(0, hyphenIndex) + text.substring(hyphenIndex + 1);
                             tablatureArea.setText(text);
@@ -321,8 +350,7 @@ public class SongLinePanel extends JPanel {
             @Override
             public void removeUpdate(DocumentEvent e) {
                 // Intentionally left blank.
-                // Grid preservation during deletion is now strictly handled by 
-                // intercepting Backspace/Delete in the KeyListener.
+                // Grid preservation during deletion is handled by intercepting Backspace/Delete.
             }
 
             @Override
@@ -332,17 +360,18 @@ public class SongLinePanel extends JPanel {
         lyricsField.setBorder(new EmptyBorder(0, 30, 0, 0));
         
 
-        chordsField.setBorder(BorderFactory.createLineBorder(Color.BLACK,2));
+        chordsField.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createLineBorder(Color.BLACK, 2),
+            new EmptyBorder(0, 30, 0, 0)
+        ));
 
         // --- 1. ENFORCE UNIFORM SIZES ---
-        // Lock the width strictly to 615px for all three fields to perfectly align them.
-        // Assign specific heights to differentiate the top and bottom text fields.
-        Dimension chordsDim = new Dimension(595, 35);
+        // Lock the width strictly to 600px for all three fields to perfectly align them.
+        int targetWidth = 600;
+        Dimension chordsDim = new Dimension(targetWidth, 35);
+        Dimension tabDim    = new Dimension(targetWidth, 100);
+        Dimension lyricsDim = new Dimension(targetWidth, 26);
         
-        Dimension tabDim    = new Dimension(595, 100);
-        
-        Dimension lyricsDim = new Dimension(595, 26);
-
         // Apply iron-clad sizing to Chords
         chordsField.setPreferredSize(chordsDim);
         chordsField.setMinimumSize(chordsDim);
@@ -361,11 +390,11 @@ public class SongLinePanel extends JPanel {
         // --- 2. GRIDBAG PLACEMENT ---
         GridBagConstraints gbc = new GridBagConstraints();
         
-        // This is the magic line: it forces the components to stretch and fill the cell's allocated width equally.
-        gbc.fill = GridBagConstraints.HORIZONTAL;
+        // Set fill to NONE so the layout manager cannot override our strict pixel sizes above
+        gbc.fill = GridBagConstraints.NONE; 
 
         // Chords (Top Row, Center Column)
-        gbc.gridx = 1; 
+        gbc.gridx = 1;
         gbc.gridy = 0; 
         gbc.insets = new Insets(0, 0, 5, 0); // 5px gap below
         gbc.anchor = GridBagConstraints.CENTER;
@@ -373,25 +402,25 @@ public class SongLinePanel extends JPanel {
 
         // Tablature (Middle Row, Center Column)
         gbc.gridy = 1; 
+        gbc.anchor = GridBagConstraints.CENTER; 
         this.add(tablatureArea, gbc);
 
         // Bin Button (Middle Row, Right Column)
         gbc.gridx = 2; 
-        gbc.gridy = 1; 
+        gbc.gridy = 1;
         gbc.insets = new Insets(0, 15, 5, 0); // 15px gap to the left of the button
-        gbc.anchor = GridBagConstraints.WEST; // Anchor to the left side of its cell
+        gbc.anchor = GridBagConstraints.WEST;
         this.add(removeButton, gbc);
 
         // Lyrics (Bottom Row, Center Column)
         gbc.gridx = 1; 
-        gbc.gridy = 2; 
+        gbc.gridy = 2;
         gbc.insets = new Insets(0, 0, 15, 0); // 15px gap below to separate song lines
         gbc.anchor = GridBagConstraints.CENTER;
         this.add(lyricsField, gbc);
 
         // Dummy Spacer (Middle Row, Left Column)
-        // This invisibly counter-balances the button's width on the right,
-        // ensuring the center column stays in the ABSOLUTE middle of the window.
+        // Invisibly counter-balances the bin button's width on the right
         Component dummy = Box.createRigidArea(new Dimension(55, 0));
         gbc.gridx = 0; 
         gbc.gridy = 1;

@@ -1,9 +1,12 @@
 package main;
 
-import javax.swing.SwingUtilities;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+
+import javax.swing.SwingUtilities;
+
 import com.formdev.flatlaf.FlatDarkLaf;
+
 import view.SongBuilderGUI;
 
 /**
@@ -12,7 +15,7 @@ import view.SongBuilderGUI;
  */
 public class SongBuilderApp {
     
-    // Professional practice: Use a Logger instead of standard error streams
+    // Use a Logger instead of standard error streams
     private static final Logger LOGGER = Logger.getLogger(SongBuilderApp.class.getName());
 
     public static void main(String[] args) {

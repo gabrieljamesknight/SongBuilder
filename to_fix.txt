@@ -1,5 +1,5 @@
 Problems:
-
+- When a chord is entered in the last position, it moves all other chords.
 
 (Definite) Improvements:
 - Add a delete button next to each line instead of the current system.
