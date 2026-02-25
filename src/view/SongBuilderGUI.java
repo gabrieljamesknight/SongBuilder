@@ -152,9 +152,14 @@ public class SongBuilderGUI {
      */
     public void addLineAction() {
         SongLinePanel newPanel = new SongLinePanel();
-        songLinePanels.add(newPanel);
         newPanel.setOnRemoveCallback(this::removeLinePanel);
-        songLinePanelContainer.add(Box.createVerticalStrut(20));
+        
+        // Only add spacing if this isn't the first panel being added to the container
+        if (!songLinePanels.isEmpty()) {
+            songLinePanelContainer.add(Box.createVerticalStrut(20));
+        }
+        
+        songLinePanels.add(newPanel);
         songLinePanelContainer.add(newPanel);
         
         // Auto-scroll to the newly added line to maintain user flow
@@ -162,7 +167,6 @@ public class SongBuilderGUI {
             JScrollBar vertical = scrollPane.getVerticalScrollBar();
             vertical.setValue(vertical.getMaximum());
         });
-        
         frame.revalidate();
         frame.repaint();
     }
@@ -206,8 +210,10 @@ public class SongBuilderGUI {
         }
 
         // Recreate all panels to reflect the new song data
-        for (SongLine songLine : song.getSongLines()) {
+        for (int i = 0; i < song.getSongLines().size(); i++) {
+            SongLine songLine = song.getSongLines().get(i);
             SongLinePanel newPanel = new SongLinePanel();
+            
             newPanel.getChordsField().setText(songLine.getChords());
             newPanel.getLyricsField().setText(songLine.getLyrics());
             newPanel.getTablatureArea().setText(songLine.getTablature().toString());
@@ -215,8 +221,12 @@ public class SongBuilderGUI {
             newPanel.updateSongLine();
             newPanel.setOnRemoveCallback(this::removeLinePanel);
             
+            // Only add spacing before the panel, matching addLineAction's logic
+            if (i > 0) {
+                songLinePanelContainer.add(Box.createVerticalStrut(20));
+            }
+            
             songLinePanelContainer.add(newPanel);
-            songLinePanelContainer.add(Box.createVerticalStrut(20));
             songLinePanels.add(newPanel);
         }
         
