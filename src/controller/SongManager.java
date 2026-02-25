@@ -1,18 +1,21 @@
 package controller;
 
+import java.io.File;
+import java.io.FileReader;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.io.Reader;
+import java.io.Writer;
+
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
-import java.io.*;
-import javax.swing.JOptionPane;
+
 import model.Song;
 import model.SongLine;
 import model.Tablature;
 
 /**
  * Manages the lifecycle and persistence of Song objects.
- * Refactored to use JSON serialization for improved data portability and robustness.
- * * @author SongBuilder Helper
- * @version 2.0
  */
 public class SongManager {
     

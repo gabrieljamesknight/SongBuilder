@@ -1,11 +1,32 @@
 package view;
 
-import controller.SongManager;
-import model.Song;
-import model.SongLine;
-import model.Tablature;
+import java.awt.BorderLayout;
+import java.awt.Color;
+import java.awt.Component;
+import java.awt.Dimension;
+import java.awt.FlowLayout;
+import java.awt.Font;
+import java.io.File;
+import java.io.IOException;
+import java.util.ArrayList;
 
-import javax.swing.*;
+import javax.swing.ActionMap;
+import javax.swing.BorderFactory;
+import javax.swing.Box;
+import javax.swing.BoxLayout;
+import javax.swing.JButton;
+import javax.swing.JFileChooser;
+import javax.swing.JFrame;
+import javax.swing.JLabel;
+import javax.swing.JMenu;
+import javax.swing.JMenuBar;
+import javax.swing.JMenuItem;
+import javax.swing.JOptionPane;
+import javax.swing.JPanel;
+import javax.swing.JScrollBar;
+import javax.swing.JScrollPane;
+import javax.swing.JTextField;
+import javax.swing.SwingUtilities;
 import javax.swing.border.EmptyBorder;
 import javax.swing.filechooser.FileNameExtensionFilter;
 import javax.swing.text.AbstractDocument;
@@ -14,11 +35,10 @@ import javax.swing.text.BadLocationException;
 import javax.swing.text.DefaultEditorKit;
 import javax.swing.text.DocumentFilter;
 
-import java.awt.*;
-import java.awt.event.ActionListener;
-import java.io.File;
-import java.io.IOException;
-import java.util.ArrayList;
+import controller.SongManager;
+import model.Song;
+import model.SongLine;
+import model.Tablature;
 
 
 public class SongBuilderGUI {
@@ -253,7 +273,7 @@ public class SongBuilderGUI {
         SongLinePanel newPanel = new SongLinePanel();
         songLinePanels.add(newPanel);
         newPanel.setOnRemoveCallback(this::removeLinePanel);
-        songLinePanelContainer.add(Box.createVerticalStrut(20)); // Smaller spacer for cleaner look
+        songLinePanelContainer.add(Box.createVerticalStrut(20));
         songLinePanelContainer.add(newPanel);
         
         // Scroll to bottom
