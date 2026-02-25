@@ -24,7 +24,6 @@ import javax.swing.text.DefaultEditorKit;
 
 import model.SongLine;
 import model.Tablature;
-import view.components.LengthFilter;
 import view.listeners.ChordsInputHandler;
 import view.listeners.TablatureInputHandler;
 

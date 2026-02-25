@@ -4,66 +4,105 @@ import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Component;
 import java.awt.Dimension;
-import java.awt.FlowLayout;
 import java.awt.Font;
-import java.io.File;
-import java.io.IOException;
 import java.util.ArrayList;
+import java.util.List;
+import java.util.function.Consumer;
+
 import javax.swing.BorderFactory;
 import javax.swing.Box;
 import javax.swing.BoxLayout;
 import javax.swing.JButton;
-import javax.swing.JFileChooser;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
-import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JScrollBar;
 import javax.swing.JScrollPane;
 import javax.swing.JTextField;
 import javax.swing.SwingUtilities;
 import javax.swing.border.EmptyBorder;
-import javax.swing.filechooser.FileNameExtensionFilter;
-import view.components.SongLinePanel;
-import view.components.TuningPanel;
-import view.components.LengthFilter;
-import controller.SongManager;
+
 import model.Song;
 import model.SongLine;
-import model.Tablature;
+import view.components.SongBuilderMenuBar;
 import view.components.SongLinePanel;
 
-
+/**
+ * The main graphical user interface for the SongBuilder application.
+ * Operates strictly as a View component within the MVC architecture. 
+ * Handles rendering of the UI, tablature grids, and captures user input to pass to the Controller.
+ */
 public class SongBuilderGUI {
-    private SongManager songManager;
+    
     private JFrame frame;
     private JTextField songNameField;
-    private JButton addLineButton, saveSongButton, loadSongButton;
+    private JButton addLineButton;
+    private JButton saveSongButton;
+    private JButton loadSongButton;
     private ArrayList<SongLinePanel> songLinePanels;
     private JTextField[] tuningFields;
     private JScrollPane scrollPane;
     private JPanel songLinePanelContainer;
 
+    // Action Callbacks (injected by the Controller)
+    private Runnable newSongAction = () -> {};
+    private Runnable saveSongAction = () -> {};
+    private Runnable saveSongAsAction = () -> {};
+    private Runnable loadSongAction = () -> {};
+    private Consumer<Integer> removeLineCallback = (index) -> {};
+
+    /**
+     * Initializes the GUI components and creates the initial empty song state.
+     */
     public SongBuilderGUI() {
-        songManager = new SongManager();
         songLinePanels = new ArrayList<>();
         tuningFields = new JTextField[6];
-        Tablature tablature = new Tablature();
-
-        // Initialize tuning fields with default values
+        
+        // Initialize tuning fields with empty strings or default standard tuning spaces
         for (int i = 0; i < 6; i++) {
-            String tuning = Character.toString(tablature.getGuitarStringTuning(i).charAt(0));
-            tuningFields[i] = new JTextField(tuning, 2);
+            tuningFields[i] = new JTextField(" ", 2);
         }
+        
         setupUI();
     }
 
+    // --- Callback Setters ---
+
+    public void setNewSongAction(Runnable action) { 
+        this.newSongAction = action; 
+        updateMenuBar(); 
+    }
+    
+    public void setSaveSongAction(Runnable action) { 
+        this.saveSongAction = action; 
+        updateMenuBar();
+    }
+    
+    public void setSaveSongAsAction(Runnable action) { 
+        this.saveSongAsAction = action; 
+        updateMenuBar(); 
+    }
+    
+    public void setLoadSongAction(Runnable action) { 
+        this.loadSongAction = action; 
+        updateMenuBar();
+    }
+    
+    public void setRemoveLineCallback(Consumer<Integer> callback) { 
+        this.removeLineCallback = callback; 
+    }
+
+    // --- UI Setup ---
+
+    /**
+     * Constructs the main frame, layout constraints, and visual components.
+     */
     private void setupUI() {
         frame = new JFrame("SongBuilder");
         frame.setLayout(new BoxLayout(frame.getContentPane(), BoxLayout.Y_AXIS));
         frame.setPreferredSize(new Dimension(850, 700));
 
-        // --- Song Name Field ---
+        // Song Name Field Styling
         songNameField = new JTextField(20);
         songNameField.setFont(new Font("Arial", Font.BOLD, 24));
         songNameField.setHorizontalAlignment(JTextField.CENTER);
@@ -73,24 +112,14 @@ public class SongBuilderGUI {
             BorderFactory.createLineBorder(new Color(80, 80, 80), 1),
             BorderFactory.createEmptyBorder(5, 5, 5, 5) 
         ));
-        Dimension SongNameFieldDim = new Dimension(400, 40); 
-        songNameField.setPreferredSize(SongNameFieldDim);
-        songNameField.setMaximumSize(SongNameFieldDim);
-
-        // Menu Bar
-        view.components.SongBuilderMenuBar menuBar = new view.components.SongBuilderMenuBar(
-            songNameField.getActionMap(),
-            this::resetGUI,
-            this::saveSongAction,
-            this::saveSongAsAction,
-            this::loadSongAction,
-            this::addLineAction
-        );
-        frame.setJMenuBar(menuBar);
+        
+        Dimension songNameFieldDim = new Dimension(400, 40); 
+        songNameField.setPreferredSize(songNameFieldDim);
+        songNameField.setMaximumSize(songNameFieldDim);
 
         Font font = new Font("Arial", Font.PLAIN, 16);
-
-        // Buttons
+        
+        // Main Interaction Buttons
         addLineButton = new JButton("Add Line");
         addLineButton.setFont(font);
         saveSongButton = new JButton("Save Song");
@@ -116,7 +145,7 @@ public class SongBuilderGUI {
         frame.add(buttonPanel);
         frame.add(Box.createRigidArea(new Dimension(0, 10)));
         
-        // --- Song Line Container ---
+        // Song Line Container (Scrollable area for tablature)
         songLinePanelContainer = new JPanel();
         songLinePanelContainer.setLayout(new BoxLayout(songLinePanelContainer, BoxLayout.Y_AXIS));
         songLinePanelContainer.setBorder(new EmptyBorder(5, 5, 45, 5));
@@ -126,12 +155,15 @@ public class SongBuilderGUI {
         frame.add(scrollPane, BorderLayout.CENTER);
         scrollPane.getVerticalScrollBar().setUnitIncrement(15);
         
-        // Add Initial Panel
-        SongLinePanel initialPanel = new SongLinePanel();
-        songLinePanels.add(initialPanel);
-        songLinePanelContainer.add(initialPanel);
+        // Action Listeners for View-level buttons triggering Controller callbacks
+        addLineButton.addActionListener(e -> addLineAction());
+        saveSongButton.addActionListener(e -> saveSongAction.run());
+        loadSongButton.addActionListener(e -> loadSongAction.run());
 
-        setupActionListeners();
+        updateMenuBar();
+
+        // Add Initial Panel
+        addLineAction();
 
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         frame.pack();
@@ -139,44 +171,34 @@ public class SongBuilderGUI {
         frame.setResizable(true); 
     }
 
-    private void removeLinePanel(SongLinePanel panelToRemove) {
-        int index = songLinePanels.indexOf(panelToRemove);
-        if (index != -1) {
-            songManager.removeSongLine(index);
-            songLinePanels.remove(index);
-            songLinePanelContainer.remove(panelToRemove);
-            
-            // Revalidate and repaint to cleanly update the UI
-            frame.revalidate();
-            frame.repaint();
-        }
+    /**
+     * Initializes or refreshes the JMenuBar with the latest action callbacks.
+     */
+    private void updateMenuBar() {
+        SongBuilderMenuBar menuBar = new SongBuilderMenuBar(
+            songNameField.getActionMap(),
+            newSongAction,
+            saveSongAction,
+            saveSongAsAction,
+            loadSongAction,
+            this::addLineAction
+        );
+        frame.setJMenuBar(menuBar);
     }
 
-    private void setupActionListeners() {
-        addLineButton.addActionListener(e -> addLineAction());
-        saveSongButton.addActionListener(e -> saveSongAction());
-        loadSongButton.addActionListener(e -> loadSongAction());
-    }
+    // --- Dynamic UI Methods ---
 
-    private void resetGUI() {
-        songLinePanels.clear();
-        songLinePanelContainer.removeAll();
-        songNameField.setText("");
-        SongLinePanel initialPanel = new SongLinePanel();
-        songLinePanels.add(initialPanel);
-        songLinePanelContainer.add(initialPanel);
-        frame.revalidate();
-        frame.repaint();
-    }
-
-    private void addLineAction() {
+    /**
+     * Appends a new, blank SongLinePanel to the end of the composition and scrolls to it.
+     */
+    public void addLineAction() {
         SongLinePanel newPanel = new SongLinePanel();
         songLinePanels.add(newPanel);
         newPanel.setOnRemoveCallback(this::removeLinePanel);
         songLinePanelContainer.add(Box.createVerticalStrut(20));
         songLinePanelContainer.add(newPanel);
         
-        // Scroll to bottom
+        // Auto-scroll to the newly added line to maintain user flow
         SwingUtilities.invokeLater(() -> {
             JScrollBar vertical = scrollPane.getVerticalScrollBar();
             vertical.setValue(vertical.getMaximum());
@@ -187,126 +209,33 @@ public class SongBuilderGUI {
     }
 
     /**
-     * Opens a file chooser dialog and loads a serialized JSON song model into the UI.
+     * Handles the visual removal of a line and notifies the Controller.
+     * * @param panelToRemove The specific panel instance requested for deletion.
      */
-    private void loadSongAction() {
-        JFileChooser fileChooser = new JFileChooser();
-        fileChooser.setFileFilter(new FileNameExtensionFilter("JSON Files", "json"));
-        int returnValue = fileChooser.showOpenDialog(frame);
-        
-        if (returnValue == JFileChooser.APPROVE_OPTION) {
-            File selectedFile = fileChooser.getSelectedFile();
-            try {
-                songManager.loadSong(selectedFile); 
-                Song song = songManager.getCurrentSong();
-                
-                // Update Name
-                songNameField.setText(song.getName());
-                
-                // Update UI components
-                refreshUIFromModel(song);
-            } catch (IOException ex) {
-                JOptionPane.showMessageDialog(frame, "Error loading file: " + ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
-                ex.printStackTrace();
-            }
-        }
-    }
-
-    /**
-     * Synchronizes the UI state with the data model and persists it to a JSON file.
-     */
-    private void saveSongAction() {
-        if (songManager.getCurrentFile() == null) {
-            saveSongAsAction();
-        } else {
-            updateModelFromUI();
-            try {
-                songManager.saveSong(songManager.getCurrentFile());
-            // Silent save for uninterrupted workflow
-            } catch (IOException ex) {
-                JOptionPane.showMessageDialog(frame, "Error saving file: " + ex.getMessage(), "Save Error", JOptionPane.ERROR_MESSAGE);
-                ex.printStackTrace();
-            }
-        }
-    }
-
-    private void saveSongAsAction() {
-        updateModelFromUI();
-        
-        JFileChooser fileChooser = new JFileChooser();
-        fileChooser.setDialogTitle("Save Song As...");
-        fileChooser.setFileFilter(new FileNameExtensionFilter("JSON Files", "json"));
-        fileChooser.setSelectedFile(new File(songManager.getCurrentSong().getName() + ".json"));
-        
-        int returnValue = fileChooser.showSaveDialog(frame);
-        if (returnValue == JFileChooser.APPROVE_OPTION) {
-            try {
-                songManager.saveSong(fileChooser.getSelectedFile());
-                JOptionPane.showMessageDialog(frame, "Song saved successfully!");
-            } catch (IOException ex) {
-                JOptionPane.showMessageDialog(frame, "Error saving file: " + ex.getMessage(), "Save Error", JOptionPane.ERROR_MESSAGE);
-                ex.printStackTrace();
-            }
-        }
-    }
-
-    /**
-     * Parses the current UI state and updates the underlying Song model.
-     */
-    private void updateModelFromUI() {
-        // Gather Tunings
-        String[] tunings = new String[6];
-        for (int i = 0; i < 6; i++) {
-            tunings[i] = tuningFields[i].getText();
-        }
-
-        // Clear current song model lines
-        songManager.getCurrentSong().getSongLines().clear();
-
-        // Re-populate model from UI Panels
-        for (SongLinePanel panel : songLinePanels) {
-            panel.updateSongLine();
-            SongLine line = panel.getSongLine();
+    private void removeLinePanel(SongLinePanel panelToRemove) {
+        int index = songLinePanels.indexOf(panelToRemove);
+        if (index != -1) {
+            removeLineCallback.accept(index);
+            songLinePanels.remove(index);
+            songLinePanelContainer.remove(panelToRemove);
             
-            // Apply global tunings to this line's tablature
-            for (int i = 0; i < 6; i++) {
-                String t = tunings[i];
-                if (t.length() < 2) t = String.format("%-2s", t);
-                line.getTablature().setGuitarStringTuning(i, t);
-            }
-            songManager.getCurrentSong().addSongLine(line);
+            frame.revalidate();
+            frame.repaint();
         }
-
-        // Update Song Name
-        String name = songNameField.getText();
-        if (name.trim().isEmpty()) name = "Untitled";
-        songManager.getCurrentSong().setName(name);
     }
 
     /**
-     * Propagates a tuning change from the global tuning fields 
-     * down to all active song line panels in the UI immediately.
-     * Handles empty strings gracefully to preserve formatting during backspaces.
-     * * @param stringIndex The zero-based index of the guitar string being changed.
-     * @param newTuning The new tuning value.
+     * Completely rebuilds the UI based on a provided Song data model.
+     * Used primarily when loading a file from disk.
+     * * @param song The underlying data model containing lines, chords, and tunings.
      */
-    private void applyTuningChange(int stringIndex, String newTuning) {
-        // Default to a blank space if the user clears the field
-        String tuningToApply = (newTuning == null || newTuning.isEmpty()) ? " " : newTuning;
-        
-        for (SongLinePanel panel : songLinePanels) {
-            panel.updateTuningVisually(stringIndex, tuningToApply);
-        }
-    }
-    
-    /**
-     * Rebuilds the UI based on a Song object.
-     */
-    private void refreshUIFromModel(Song song) {
+    public void refreshUIFromModel(Song song) {
         songLinePanels.clear();
         songLinePanelContainer.removeAll();
         
-        // Handle Tuning from first line (if exists)
+        songNameField.setText(song.getName());
+
+        // Sync global tuning fields based on the first line of the song
         if (!song.getSongLines().isEmpty()) {
             SongLine firstLine = song.getSongLines().get(0);
             for (int i = 0; i < 6; i++) {
@@ -315,22 +244,63 @@ public class SongBuilderGUI {
             }
         }
 
-        // Recreate Panels
+        // Recreate all panels to reflect the new song data
         for (SongLine songLine : song.getSongLines()) {
             SongLinePanel newPanel = new SongLinePanel();
-            
             newPanel.getChordsField().setText(songLine.getChords());
             newPanel.getLyricsField().setText(songLine.getLyrics());
             newPanel.getTablatureArea().setText(songLine.getTablature().toString());
             
-            newPanel.updateSongLine(); 
+            newPanel.updateSongLine();
+            newPanel.setOnRemoveCallback(this::removeLinePanel);
             
             songLinePanelContainer.add(newPanel);
-            songLinePanelContainer.add(Box.createVerticalStrut(20)); // Consistent spacing
+            songLinePanelContainer.add(Box.createVerticalStrut(20));
             songLinePanels.add(newPanel);
         }
         
         frame.revalidate();
         frame.repaint();
+    }
+
+    /**
+     * Clears all fields and resets the application to a blank, untitled state.
+     */
+    public void resetGUI() {
+        songLinePanels.clear();
+        songLinePanelContainer.removeAll();
+        songNameField.setText("");
+        
+        for (int i = 0; i < 6; i++) {
+            tuningFields[i].setText(" ");
+        }
+        
+        addLineAction();
+    }
+
+    // --- State Exposure Getters for Controller ---
+
+    public JFrame getFrame() { 
+        return frame; 
+    }
+    
+    public String getSongName() { 
+        return songNameField.getText(); 
+    }
+    
+    public List<SongLinePanel> getSongLinePanels() { 
+        return songLinePanels; 
+    }
+    
+    /**
+     * Extracts the current tuning text from the header inputs.
+     * * @return An array of strings representing the 6 guitar string tunings.
+     */
+    public String[] getTuningFieldsData() {
+        String[] tunings = new String[6];
+        for (int i = 0; i < 6; i++) {
+            tunings[i] = tuningFields[i].getText();
+        }
+        return tunings;
     }
 }
