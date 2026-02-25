@@ -17,6 +17,7 @@ import javax.swing.JButton;
 import javax.swing.JPanel;
 import javax.swing.JTextArea;
 import javax.swing.JTextField;
+import javax.swing.KeyStroke;
 import javax.swing.SwingUtilities;
 import javax.swing.border.EmptyBorder;
 import javax.swing.event.CaretEvent;
@@ -25,6 +26,7 @@ import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
 import javax.swing.text.AbstractDocument;
 import javax.swing.text.BadLocationException;
+import javax.swing.text.DefaultEditorKit;
 
 import model.SongLine;
 import model.Tablature;
@@ -48,9 +50,9 @@ public class SongLinePanel extends JPanel {
 
         chordsField = new JTextField();
         chordsField.setFont(new Font("Monospaced", Font.PLAIN, 20));
-        chordsField.setText(" ".repeat(48));
+        chordsField.setText(" ".repeat(47));
         chordsField.setHorizontalAlignment(JTextField.LEFT);
-        LengthFilter lengthFilter = new LengthFilter(49);
+        LengthFilter lengthFilter = new LengthFilter(50);
         ((AbstractDocument) chordsField.getDocument()).setDocumentFilter(lengthFilter);
         chordsField.setBorder(new EmptyBorder(0, 30, 0, 0));
 
@@ -59,6 +61,11 @@ public class SongLinePanel extends JPanel {
         chordsField.addKeyListener(new KeyAdapter() {
             @Override
             public void keyTyped(KeyEvent e) {
+                if (e.getKeyChar() == ' ') {
+                     e.consume();
+                     return;
+                 }
+
                  int caretPos = chordsField.getCaretPosition();
                  String text = chordsField.getText();
                  
@@ -162,7 +169,8 @@ public class SongLinePanel extends JPanel {
         
         tablatureArea.setFont(new Font("Monospaced", Font.PLAIN, 12));
         tablatureArea.setBorder(new EmptyBorder(5, 5, 5, 5));
-        // Remove the hardcoded column count (40)
+        tablatureArea.getInputMap().put(KeyStroke.getKeyStroke(KeyEvent.VK_SPACE, 0), DefaultEditorKit.forwardAction);
+        tablatureArea.getInputMap().put(KeyStroke.getKeyStroke(' '), DefaultEditorKit.forwardAction);
         lyricsField = new JTextField();
         lyricsField.setFont(font);
         Tablature emptyTablature = new Tablature();
@@ -244,6 +252,14 @@ public class SongLinePanel extends JPanel {
                 int caretPos = tablatureArea.getCaretPosition();
                 String text = tablatureArea.getText();
 
+                if (e.getKeyCode() == KeyEvent.VK_SPACE) {
+                    e.consume(); // Hijack the spacebar event
+                    if (caretPos + 1 < text.length()) {
+                        tablatureArea.setCaretPosition(caretPos + 1);
+                    }
+                    return;
+                }
+
                 // Prevent typing out of bounds or typing control characters
                 if (caretPos >= text.length() || Character.isISOControl(e.getKeyChar())) {
                     e.consume();
@@ -268,6 +284,7 @@ public class SongLinePanel extends JPanel {
 
                 int caretPos = tablatureArea.getCaretPosition();
                 String text = tablatureArea.getText();
+
 
                 if (e.getKeyCode() == KeyEvent.VK_BACK_SPACE) {
                     e.consume(); // Hijack the backspace
