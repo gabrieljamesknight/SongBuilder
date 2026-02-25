@@ -24,15 +24,14 @@ import javax.swing.JTextField;
 import javax.swing.SwingUtilities;
 import javax.swing.border.EmptyBorder;
 import javax.swing.filechooser.FileNameExtensionFilter;
-import javax.swing.text.AbstractDocument;
-import javax.swing.text.AttributeSet;
-import javax.swing.text.BadLocationException;
-import javax.swing.text.DocumentFilter;
-
+import view.components.SongLinePanel;
+import view.components.TuningPanel;
+import view.components.LengthFilter;
 import controller.SongManager;
 import model.Song;
 import model.SongLine;
 import model.Tablature;
+import view.components.SongLinePanel;
 
 
 public class SongBuilderGUI {
@@ -116,54 +115,6 @@ public class SongBuilderGUI {
         frame.add(Box.createRigidArea(new Dimension(0, 10)));
         frame.add(buttonPanel);
         frame.add(Box.createRigidArea(new Dimension(0, 10)));
-        
-        // --- Tuning Section ---
-        JLabel tuningLabel = new JLabel("Tuning:");
-        tuningLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
-        frame.add(tuningLabel);
-        
-        JPanel tuningFieldsPanel = new JPanel(new FlowLayout());
-        frame.add(tuningFieldsPanel);
-        
-        Dimension tuningFieldPanelDim = new Dimension(400, 45);
-        
-        tuningFieldsPanel.setBorder(BorderFactory.createCompoundBorder(
-            BorderFactory.createEmptyBorder(0, 0, 0, 0),
-            tuningFieldsPanel.getBorder()
-        ));
-        tuningFieldsPanel.setPreferredSize(tuningFieldPanelDim);
-        tuningFieldsPanel.setMaximumSize(tuningFieldPanelDim);
-        
-        for (int i = tuningFields.length - 1; i >= 0; i--) {
-            JTextField tuningField = tuningFields[i];
-            Dimension tuningFieldsDim = new Dimension(35, 30);
-            tuningField.setPreferredSize(tuningFieldsDim);
-            tuningField.setHorizontalAlignment(JTextField.CENTER);
-            tuningFieldsPanel.add(tuningField);
-            ((AbstractDocument)tuningField.getDocument()).setDocumentFilter(new LengthFilter(2));
-            
-            final int stringIndex = i; 
-            
-            /**
-             * Attach a DocumentListener for true real-time UI synchronization.
-             * This captures keystrokes, pastes, and deletions instantly without waiting for focus loss.
-             */
-            tuningField.getDocument().addDocumentListener(new javax.swing.event.DocumentListener() {
-                @Override
-                public void insertUpdate(javax.swing.event.DocumentEvent e) { update(); }
-                @Override
-                public void removeUpdate(javax.swing.event.DocumentEvent e) { update(); }
-                @Override
-                public void changedUpdate(javax.swing.event.DocumentEvent e) { update(); }
-                
-                private void update() {
-                    // Push the UI update to the end of the Event Queue to prevent concurrent modification exceptions
-                    SwingUtilities.invokeLater(() -> {
-                        applyTuningChange(stringIndex, tuningField.getText());
-                    });
-                }
-            });
-        }
         
         // --- Song Line Container ---
         songLinePanelContainer = new JPanel();
@@ -381,25 +332,5 @@ public class SongBuilderGUI {
         
         frame.revalidate();
         frame.repaint();
-    }
-}
-
-// Inner class for filtering text length
-class LengthFilter extends DocumentFilter {
-    private int max;
-    LengthFilter(int max) { this.max = max; }
-
-    @Override
-    public void insertString(FilterBypass fb, int offset, String string, AttributeSet attr) throws BadLocationException {
-        if (this.max < 0 || fb.getDocument().getLength() + string.length() <= this.max) {
-            super.insertString(fb, offset, string, attr);
-        }
-    }
-
-    @Override
-    public void replace(FilterBypass fb, int offset, int length, String text, AttributeSet attrs) throws BadLocationException {
-        if (this.max < 0 || fb.getDocument().getLength() + text.length() - length <= this.max) {
-            super.replace(fb, offset, length, text, attrs);
-        }
     }
 }
