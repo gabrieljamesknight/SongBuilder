@@ -7,6 +7,8 @@ import javax.swing.SwingUtilities;
 
 import com.formdev.flatlaf.FlatDarkLaf;
 
+import controller.SongController;
+import controller.SongManager;
 import view.SongBuilderGUI;
 
 /**
@@ -30,8 +32,9 @@ public class SongBuilderApp {
         // 2. Launch the Application
         SwingUtilities.invokeLater(() -> {
             try {
-                @SuppressWarnings("unused")
+                SongManager manager = new SongManager();
                 SongBuilderGUI gui = new SongBuilderGUI();
+                SongController controller = new SongController(gui, manager);
             } catch (Exception e) {
                 LOGGER.log(Level.SEVERE, "Fatal error initializing SongBuilder GUI:", e);
             }

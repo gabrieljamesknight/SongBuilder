@@ -1,5 +1,7 @@
 Problems:
-- The 1st and 2nd songline are further away from each other than all following songlines.
+- The 1st and 2nd songline are further away from each other than all following songlines. This only occurs upon first adding and not
+  when a song is loaded in.
+- Because lyrics field text isn't monospaced, the field maximum length is either too long or too short depending on the text entered.
 
 (Definite) Improvements:
 - Add more modern look to songline presentation.
