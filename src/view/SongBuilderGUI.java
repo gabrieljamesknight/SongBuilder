@@ -1,45 +1,38 @@
 package view;
 
 import java.awt.BorderLayout;
-import java.awt.Color;
-import java.awt.Component;
 import java.awt.Dimension;
-import java.awt.Font;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
 
-import javax.swing.BorderFactory;
 import javax.swing.Box;
 import javax.swing.BoxLayout;
-import javax.swing.JButton;
 import javax.swing.JFrame;
-import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JScrollBar;
 import javax.swing.JScrollPane;
-import javax.swing.JTextField;
 import javax.swing.SwingUtilities;
 import javax.swing.border.EmptyBorder;
 
 import model.Song;
 import model.SongLine;
 import view.components.SongBuilderMenuBar;
+import view.components.SongHeaderPanel;
 import view.components.SongLinePanel;
 import view.components.TuningPanel;
 
 /**
  * The main graphical user interface for the SongBuilder application.
+ *
  * Operates strictly as a View component within the MVC architecture.
- * Handles rendering of the UI, tablature grids, and captures user input to pass to the Controller.
+ * Handles high-level layout orchestration, routing data to the Controller,
+ * and managing the scrollable tablature grid.
  */
 public class SongBuilderGUI {
     
     private JFrame frame;
-    private JTextField songNameField;
-    private JButton addLineButton;
-    private JButton saveSongButton;
-    private JButton loadSongButton;
+    private SongHeaderPanel headerPanel;
     private ArrayList<SongLinePanel> songLinePanels;
     private TuningPanel tuningPanel;
     private JScrollPane scrollPane;
@@ -57,7 +50,7 @@ public class SongBuilderGUI {
      */
     public SongBuilderGUI() {
         songLinePanels = new ArrayList<>();
-        
+
         // Initialize the modular tuning panel with default standard tuning
         String[] defaultTunings = {"e", "B", "G", "D", "A", "E"};
         tuningPanel = new TuningPanel(defaultTunings, this::handleGlobalTuningChange);
@@ -101,9 +94,15 @@ public class SongBuilderGUI {
         frame.setLayout(new BoxLayout(frame.getContentPane(), BoxLayout.Y_AXIS));
         frame.setPreferredSize(new Dimension(850, 700));
 
-        // Delegate header construction to a distinct method
+        // Initialize the new Header Panel with lazily evaluated callbacks
+        headerPanel = new SongHeaderPanel(
+            this::addLineAction, 
+            () -> saveSongAction.run(), 
+            () -> loadSongAction.run()
+        );
+
         frame.add(Box.createRigidArea(new Dimension(0, 10)));
-        frame.add(buildHeaderPanel());
+        frame.add(headerPanel);
         frame.add(Box.createRigidArea(new Dimension(0, 10)));
         
         // Add the modular tuning panel
@@ -128,64 +127,7 @@ public class SongBuilderGUI {
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         frame.pack();
         frame.setVisible(true);
-        frame.setResizable(true); 
-    }
-
-    /**
-     * Constructs the top section of the UI, including the song title and main action buttons.
-     *
-     * @return A consolidated JPanel containing the header controls.
-     */
-    private JPanel buildHeaderPanel() {
-        JPanel headerPanel = new JPanel();
-        headerPanel.setLayout(new BoxLayout(headerPanel, BoxLayout.Y_AXIS));
-
-        // Song Name Field Styling
-        songNameField = new JTextField(20);
-        songNameField.setFont(new Font("Arial", Font.BOLD, 24));
-        songNameField.setHorizontalAlignment(JTextField.CENTER);
-        songNameField.setBackground(new Color(60, 60, 60));
-        songNameField.setForeground(Color.WHITE);
-        songNameField.setBorder(BorderFactory.createCompoundBorder(
-            BorderFactory.createLineBorder(new Color(80, 80, 80), 1),
-            BorderFactory.createEmptyBorder(5, 5, 5, 5) 
-        ));
-        
-        Dimension songNameFieldDim = new Dimension(400, 40); 
-        songNameField.setPreferredSize(songNameFieldDim);
-        songNameField.setMaximumSize(songNameFieldDim);
-
-        // Main Interaction Buttons
-        Font font = new Font("Arial", Font.PLAIN, 16);
-        addLineButton = new JButton("Add Line");
-        addLineButton.setFont(font);
-        addLineButton.addActionListener(e -> addLineAction());
-
-        saveSongButton = new JButton("Save Song");
-        saveSongButton.setFont(font);
-        saveSongButton.addActionListener(e -> saveSongAction.run());
-
-        loadSongButton = new JButton("Load Song");
-        loadSongButton.setFont(font);
-        loadSongButton.addActionListener(e -> loadSongAction.run());
-
-        JPanel buttonPanel = new JPanel();
-        buttonPanel.setLayout(new BoxLayout(buttonPanel, BoxLayout.X_AXIS));
-        buttonPanel.add(addLineButton);
-        buttonPanel.add(Box.createRigidArea(new Dimension(10, 0)));
-        buttonPanel.add(saveSongButton);
-        buttonPanel.add(Box.createRigidArea(new Dimension(10, 0)));
-        buttonPanel.add(loadSongButton);
-
-        JLabel songNameLabel = new JLabel("Song Name:");
-        songNameLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
-        
-        headerPanel.add(songNameLabel);
-        headerPanel.add(songNameField);
-        headerPanel.add(Box.createRigidArea(new Dimension(0, 10)));
-        headerPanel.add(buttonPanel);
-
-        return headerPanel;
+        frame.setResizable(true);
     }
 
     /**
@@ -193,7 +135,7 @@ public class SongBuilderGUI {
      */
     private void updateMenuBar() {
         SongBuilderMenuBar menuBar = new SongBuilderMenuBar(
-            songNameField.getActionMap(),
+            headerPanel.getTextFieldActionMap(), // Delegate to the extracted component
             newSongAction,
             saveSongAction,
             saveSongAsAction,
@@ -227,7 +169,8 @@ public class SongBuilderGUI {
 
     /**
      * Handles the visual removal of a line and notifies the Controller.
-     * * @param panelToRemove The specific panel instance requested for deletion.
+     *
+     * @param panelToRemove The specific panel instance requested for deletion.
      */
     private void removeLinePanel(SongLinePanel panelToRemove) {
         int index = songLinePanels.indexOf(panelToRemove);
@@ -244,14 +187,15 @@ public class SongBuilderGUI {
     /**
      * Completely rebuilds the UI based on a provided Song data model.
      * Used primarily when loading a file from disk.
-     * * @param song The underlying data model containing lines, chords, and tunings.
+     *
+     * @param song The underlying data model containing lines, chords, and tunings.
      */
     public void refreshUIFromModel(Song song) {
         songLinePanels.clear();
         songLinePanelContainer.removeAll();
         
-        songNameField.setText(song.getName());
-
+        headerPanel.setSongName(song.getName());
+        
         // Sync global tuning fields based on the first line of the song
         if (!song.getSongLines().isEmpty()) {
             SongLine firstLine = song.getSongLines().get(0);
@@ -286,7 +230,7 @@ public class SongBuilderGUI {
     public void resetGUI() {
         songLinePanels.clear();
         songLinePanelContainer.removeAll();
-        songNameField.setText("");
+        headerPanel.setSongName("");
         
         String[] defaultTunings = {"e", "B", "G", "D", "A", "E"};
         tuningPanel = new TuningPanel(defaultTunings, this::handleGlobalTuningChange);
@@ -300,12 +244,12 @@ public class SongBuilderGUI {
     /**
      * Callback triggered when a user changes a tuning in the TuningPanel.
      * Visually cascades the tuning change to all active SongLinePanels.
-     * * @param stringIndex The 0-based index of the guitar string.
-     * @param newTuning The updated tuning string.
+     *
+     * @param stringIndex The 0-based index of the guitar string.
+     * @param newTuning   The updated tuning string.
      */
     private void handleGlobalTuningChange(int stringIndex, String newTuning) {
         if (songLinePanels == null) return;
-        
         for (SongLinePanel panel : songLinePanels) {
             panel.updateTuningVisually(stringIndex, newTuning);
         }
@@ -318,7 +262,7 @@ public class SongBuilderGUI {
     }
     
     public String getSongName() { 
-        return songNameField.getText();
+        return headerPanel.getSongName();
     }
     
     public List<SongLinePanel> getSongLinePanels() { 
@@ -327,7 +271,8 @@ public class SongBuilderGUI {
     
     /**
      * Extracts the current tuning text from the header inputs.
-     * * @return An array of strings representing the 6 guitar string tunings.
+     *
+     * @return An array of strings representing the 6 guitar string tunings.
      */
     public String[] getTuningFieldsData() {
         return tuningPanel.getCurrentTunings();
