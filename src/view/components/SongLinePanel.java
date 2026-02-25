@@ -25,8 +25,15 @@ import javax.swing.text.DefaultEditorKit;
 import model.SongLine;
 import model.Tablature;
 import view.listeners.ChordsInputHandler;
+import view.listeners.LyricsInputHandler;
 import view.listeners.TablatureInputHandler;
 
+/**
+ * Represents a single musical line within the application's UI, integrating chords, 
+ * tablature, and lyrics.
+ * * Acts as a composite view component, delegating specific input handling and 
+ * formatting rules to dedicated listener classes to maintain a clean architecture.
+ */
 public class SongLinePanel extends JPanel {
     private JTextField chordsField, lyricsField;
     private JTextArea tablatureArea;
@@ -34,6 +41,9 @@ public class SongLinePanel extends JPanel {
     protected boolean isProgrammaticUpdate = false;
     private Consumer<SongLinePanel> onRemoveCallback;
 
+    /**
+     * Constructs a new SongLinePanel, initializing the UI components and their respective layout constraints.
+     */
     public SongLinePanel() {
         super();
         this.setLayout(new GridBagLayout());
@@ -59,6 +69,9 @@ public class SongLinePanel extends JPanel {
         layoutComponents(removeButton);
     }
 
+    /**
+     * Initializes the chords input field and attaches its specific input handler.
+     */
     private void initChordsField() {
         chordsField = new JTextField();
         chordsField.setFont(new Font("Monospaced", Font.PLAIN, 20));
@@ -73,10 +86,13 @@ public class SongLinePanel extends JPanel {
             new EmptyBorder(0, 30, 0, 0)
         ));
 
-        // WIRE UP THE NEW HANDLER:
         new ChordsInputHandler(chordsField);
     }
 
+    /**
+     * Initializes the tablature text area, establishes baseline empty strings, 
+     * and attaches its specialized input handler.
+     */
     private void initTablatureArea() {
         tablatureArea = new JTextArea() {
             @Override
@@ -101,14 +117,20 @@ public class SongLinePanel extends JPanel {
         new TablatureInputHandler(tablatureArea);
     }
 
+    /**
+     * Initializes the lyrics text field and delegates its configuration and constraints 
+     * to the LyricsInputHandler.
+     * * @param font The font to apply to the lyrics text field.
+     */
     private void initLyricsField(Font font) {
         lyricsField = new JTextField();
-        lyricsField.setFont(font);
-        LengthFilter lyricLengthFilter = new LengthFilter(65);
-        ((AbstractDocument) lyricsField.getDocument()).setDocumentFilter(lyricLengthFilter);
-        lyricsField.setBorder(new EmptyBorder(0, 30, 0, 0));
+        new LyricsInputHandler(lyricsField, font);
     }
 
+    /**
+     * Arranges the initialized components within the panel using GridBagLayout.
+     * * @param removeButton The button used to trigger the removal of this panel.
+     */
     private void layoutComponents(JButton removeButton) {
         int targetWidth = 600;
         Dimension chordsDim = new Dimension(targetWidth, 35);
@@ -126,12 +148,12 @@ public class SongLinePanel extends JPanel {
 
         GridBagConstraints gbc = new GridBagConstraints();
         gbc.fill = GridBagConstraints.NONE;
-
+        
         gbc.gridx = 1; gbc.gridy = 0;
         gbc.insets = new Insets(0, 0, 5, 0); 
         gbc.anchor = GridBagConstraints.CENTER;
         this.add(chordsField, gbc);
-
+        
         gbc.gridy = 1; 
         gbc.anchor = GridBagConstraints.CENTER; 
         this.add(tablatureArea, gbc);
@@ -152,6 +174,12 @@ public class SongLinePanel extends JPanel {
         this.add(dummy, gbc);
     }
 
+    /**
+     * Visually updates the tuning of a specific string in the tablature area without 
+     * triggering document listener loops.
+     * * @param stringIndex The 0-based index of the guitar string.
+     * @param newTuning   The new tuning character(s) to apply.
+     */
     public void updateTuningVisually(int stringIndex, String newTuning) {
         String formattedTuning = String.format("%-2s", newTuning);
         String currentText = tablatureArea.getText();
@@ -160,7 +188,6 @@ public class SongLinePanel extends JPanel {
         if (stringIndex >= 0 && stringIndex < lines.length) {
             if (lines[stringIndex].length() >= 2) {
                 lines[stringIndex] = formattedTuning + lines[stringIndex].substring(2);
-                
                 SwingUtilities.invokeLater(() -> {
                     isProgrammaticUpdate = true;
                     try {
@@ -173,10 +200,17 @@ public class SongLinePanel extends JPanel {
         }
     }
 
+    /**
+     * Sets the callback to be executed when the remove button is clicked.
+     * * @param callback The consumer function to handle panel removal.
+     */
     public void setOnRemoveCallback(Consumer<SongLinePanel> callback) {
         this.onRemoveCallback = callback;
     }
 
+    /**
+     * Commits the current UI field values into the underlying SongLine model object.
+     */
     public void updateSongLine() {
         songLine.setChords(getChords());
         songLine.setLyrics(getLyrics());
@@ -187,6 +221,7 @@ public class SongLinePanel extends JPanel {
     public String getChords() { return chordsField.getText(); }
     public String getLyrics() { return lyricsField.getText(); }
     public Tablature getTablature() { return Tablature.parseTablature(tablatureArea.getText()); }
+    
     public JTextField getChordsField() { return chordsField; }
     public JTextField getLyricsField() { return lyricsField; }
     public JTextArea getTablatureArea() { return tablatureArea; }

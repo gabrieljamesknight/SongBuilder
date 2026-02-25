@@ -26,10 +26,11 @@ import model.Song;
 import model.SongLine;
 import view.components.SongBuilderMenuBar;
 import view.components.SongLinePanel;
+import view.components.TuningPanel;
 
 /**
  * The main graphical user interface for the SongBuilder application.
- * Operates strictly as a View component within the MVC architecture. 
+ * Operates strictly as a View component within the MVC architecture.
  * Handles rendering of the UI, tablature grids, and captures user input to pass to the Controller.
  */
 public class SongBuilderGUI {
@@ -40,7 +41,7 @@ public class SongBuilderGUI {
     private JButton saveSongButton;
     private JButton loadSongButton;
     private ArrayList<SongLinePanel> songLinePanels;
-    private JTextField[] tuningFields;
+    private TuningPanel tuningPanel;
     private JScrollPane scrollPane;
     private JPanel songLinePanelContainer;
 
@@ -56,12 +57,10 @@ public class SongBuilderGUI {
      */
     public SongBuilderGUI() {
         songLinePanels = new ArrayList<>();
-        tuningFields = new JTextField[6];
         
-        // Initialize tuning fields with empty strings or default standard tuning spaces
-        for (int i = 0; i < 6; i++) {
-            tuningFields[i] = new JTextField(" ", 2);
-        }
+        // Initialize the modular tuning panel with default standard tuning
+        String[] defaultTunings = {"e", "B", "G", "D", "A", "E"};
+        tuningPanel = new TuningPanel(defaultTunings, this::handleGlobalTuningChange);
         
         setupUI();
     }
@@ -69,27 +68,27 @@ public class SongBuilderGUI {
     // --- Callback Setters ---
 
     public void setNewSongAction(Runnable action) { 
-        this.newSongAction = action; 
+        this.newSongAction = action;
         updateMenuBar(); 
     }
     
     public void setSaveSongAction(Runnable action) { 
-        this.saveSongAction = action; 
+        this.saveSongAction = action;
         updateMenuBar();
     }
     
     public void setSaveSongAsAction(Runnable action) { 
-        this.saveSongAsAction = action; 
+        this.saveSongAsAction = action;
         updateMenuBar(); 
     }
     
     public void setLoadSongAction(Runnable action) { 
-        this.loadSongAction = action; 
+        this.loadSongAction = action;
         updateMenuBar();
     }
     
     public void setRemoveLineCallback(Consumer<Integer> callback) { 
-        this.removeLineCallback = callback; 
+        this.removeLineCallback = callback;
     }
 
     // --- UI Setup ---
@@ -101,6 +100,45 @@ public class SongBuilderGUI {
         frame = new JFrame("SongBuilder");
         frame.setLayout(new BoxLayout(frame.getContentPane(), BoxLayout.Y_AXIS));
         frame.setPreferredSize(new Dimension(850, 700));
+
+        // Delegate header construction to a distinct method
+        frame.add(Box.createRigidArea(new Dimension(0, 10)));
+        frame.add(buildHeaderPanel());
+        frame.add(Box.createRigidArea(new Dimension(0, 10)));
+        
+        // Add the modular tuning panel
+        frame.add(tuningPanel);
+        frame.add(Box.createRigidArea(new Dimension(0, 10)));
+
+        // Song Line Container (Scrollable area for tablature)
+        songLinePanelContainer = new JPanel();
+        songLinePanelContainer.setLayout(new BoxLayout(songLinePanelContainer, BoxLayout.Y_AXIS));
+        songLinePanelContainer.setBorder(new EmptyBorder(5, 5, 45, 5));
+
+        scrollPane = new JScrollPane(songLinePanelContainer);
+        scrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_ALWAYS);    
+        frame.add(scrollPane, BorderLayout.CENTER);
+        scrollPane.getVerticalScrollBar().setUnitIncrement(15);
+
+        updateMenuBar();
+
+        // Add Initial Panel
+        addLineAction();
+
+        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        frame.pack();
+        frame.setVisible(true);
+        frame.setResizable(true); 
+    }
+
+    /**
+     * Constructs the top section of the UI, including the song title and main action buttons.
+     *
+     * @return A consolidated JPanel containing the header controls.
+     */
+    private JPanel buildHeaderPanel() {
+        JPanel headerPanel = new JPanel();
+        headerPanel.setLayout(new BoxLayout(headerPanel, BoxLayout.Y_AXIS));
 
         // Song Name Field Styling
         songNameField = new JTextField(20);
@@ -117,15 +155,19 @@ public class SongBuilderGUI {
         songNameField.setPreferredSize(songNameFieldDim);
         songNameField.setMaximumSize(songNameFieldDim);
 
-        Font font = new Font("Arial", Font.PLAIN, 16);
-        
         // Main Interaction Buttons
+        Font font = new Font("Arial", Font.PLAIN, 16);
         addLineButton = new JButton("Add Line");
         addLineButton.setFont(font);
+        addLineButton.addActionListener(e -> addLineAction());
+
         saveSongButton = new JButton("Save Song");
         saveSongButton.setFont(font);
+        saveSongButton.addActionListener(e -> saveSongAction.run());
+
         loadSongButton = new JButton("Load Song");
         loadSongButton.setFont(font);
+        loadSongButton.addActionListener(e -> loadSongAction.run());
 
         JPanel buttonPanel = new JPanel();
         buttonPanel.setLayout(new BoxLayout(buttonPanel, BoxLayout.X_AXIS));
@@ -135,40 +177,15 @@ public class SongBuilderGUI {
         buttonPanel.add(Box.createRigidArea(new Dimension(10, 0)));
         buttonPanel.add(loadSongButton);
 
-        frame.add(Box.createRigidArea(new Dimension(0, 10)));
         JLabel songNameLabel = new JLabel("Song Name:");
         songNameLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
-        frame.add(songNameLabel);
-        frame.add(songNameField);
         
-        frame.add(Box.createRigidArea(new Dimension(0, 10)));
-        frame.add(buttonPanel);
-        frame.add(Box.createRigidArea(new Dimension(0, 10)));
-        
-        // Song Line Container (Scrollable area for tablature)
-        songLinePanelContainer = new JPanel();
-        songLinePanelContainer.setLayout(new BoxLayout(songLinePanelContainer, BoxLayout.Y_AXIS));
-        songLinePanelContainer.setBorder(new EmptyBorder(5, 5, 45, 5));
+        headerPanel.add(songNameLabel);
+        headerPanel.add(songNameField);
+        headerPanel.add(Box.createRigidArea(new Dimension(0, 10)));
+        headerPanel.add(buttonPanel);
 
-        scrollPane = new JScrollPane(songLinePanelContainer);
-        scrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_ALWAYS);    
-        frame.add(scrollPane, BorderLayout.CENTER);
-        scrollPane.getVerticalScrollBar().setUnitIncrement(15);
-        
-        // Action Listeners for View-level buttons triggering Controller callbacks
-        addLineButton.addActionListener(e -> addLineAction());
-        saveSongButton.addActionListener(e -> saveSongAction.run());
-        loadSongButton.addActionListener(e -> loadSongAction.run());
-
-        updateMenuBar();
-
-        // Add Initial Panel
-        addLineAction();
-
-        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        frame.pack();
-        frame.setVisible(true);
-        frame.setResizable(true); 
+        return headerPanel;
     }
 
     /**
@@ -240,7 +257,7 @@ public class SongBuilderGUI {
             SongLine firstLine = song.getSongLines().get(0);
             for (int i = 0; i < 6; i++) {
                 String tuning = firstLine.getTablature().getGuitarStringTuning(i).trim();
-                tuningFields[i].setText(tuning);
+                tuningPanel.setTuningSilently(i, tuning);
             }
         }
 
@@ -271,25 +288,41 @@ public class SongBuilderGUI {
         songLinePanelContainer.removeAll();
         songNameField.setText("");
         
+        String[] defaultTunings = {"e", "B", "G", "D", "A", "E"};
+        tuningPanel = new TuningPanel(defaultTunings, this::handleGlobalTuningChange);
         for (int i = 0; i < 6; i++) {
-            tuningFields[i].setText(" ");
+            tuningPanel.setTuningSilently(i, defaultTunings[i]);
         }
         
         addLineAction();
+    }
+    
+    /**
+     * Callback triggered when a user changes a tuning in the TuningPanel.
+     * Visually cascades the tuning change to all active SongLinePanels.
+     * * @param stringIndex The 0-based index of the guitar string.
+     * @param newTuning The updated tuning string.
+     */
+    private void handleGlobalTuningChange(int stringIndex, String newTuning) {
+        if (songLinePanels == null) return;
+        
+        for (SongLinePanel panel : songLinePanels) {
+            panel.updateTuningVisually(stringIndex, newTuning);
+        }
     }
 
     // --- State Exposure Getters for Controller ---
 
     public JFrame getFrame() { 
-        return frame; 
+        return frame;
     }
     
     public String getSongName() { 
-        return songNameField.getText(); 
+        return songNameField.getText();
     }
     
     public List<SongLinePanel> getSongLinePanels() { 
-        return songLinePanels; 
+        return songLinePanels;
     }
     
     /**
@@ -297,10 +330,6 @@ public class SongBuilderGUI {
      * * @return An array of strings representing the 6 guitar string tunings.
      */
     public String[] getTuningFieldsData() {
-        String[] tunings = new String[6];
-        for (int i = 0; i < 6; i++) {
-            tunings[i] = tuningFields[i].getText();
-        }
-        return tunings;
+        return tuningPanel.getCurrentTunings();
     }
 }
