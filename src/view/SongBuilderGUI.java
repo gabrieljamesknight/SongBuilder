@@ -9,8 +9,6 @@ import java.awt.Font;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
-
-import javax.swing.ActionMap;
 import javax.swing.BorderFactory;
 import javax.swing.Box;
 import javax.swing.BoxLayout;
@@ -18,9 +16,6 @@ import javax.swing.JButton;
 import javax.swing.JFileChooser;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
-import javax.swing.JMenu;
-import javax.swing.JMenuBar;
-import javax.swing.JMenuItem;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JScrollBar;
@@ -32,7 +27,6 @@ import javax.swing.filechooser.FileNameExtensionFilter;
 import javax.swing.text.AbstractDocument;
 import javax.swing.text.AttributeSet;
 import javax.swing.text.BadLocationException;
-import javax.swing.text.DefaultEditorKit;
 import javax.swing.text.DocumentFilter;
 
 import controller.SongManager;
@@ -85,7 +79,14 @@ public class SongBuilderGUI {
         songNameField.setMaximumSize(SongNameFieldDim);
 
         // Menu Bar
-        JMenuBar menuBar = createMenuBar();
+        view.components.SongBuilderMenuBar menuBar = new view.components.SongBuilderMenuBar(
+            songNameField.getActionMap(),
+            this::resetGUI,
+            this::saveSongAction,
+            this::saveSongAsAction,
+            this::loadSongAction,
+            this::addLineAction
+        );
         frame.setJMenuBar(menuBar);
 
         Font font = new Font("Arial", Font.PLAIN, 16);
@@ -187,58 +188,6 @@ public class SongBuilderGUI {
         frame.setResizable(true); 
     }
 
-    private JMenuBar createMenuBar() {
-        JMenuBar menuBar = new JMenuBar();
-        ActionMap actionMap = songNameField.getActionMap();
-        
-        // File Menu
-        JMenu fileMenu = new JMenu("File");
-        JMenuItem newSongMenuItem = new JMenuItem("New File");
-        JMenuItem saveSongMenuItem = new JMenuItem("Save");
-        JMenuItem saveAsMenuItem = new JMenuItem("Save As...");
-        JMenuItem loadSongMenuItem = new JMenuItem("Load...");
-        JMenuItem exitSongMenuItem = new JMenuItem("Exit");
-        
-        fileMenu.add(newSongMenuItem);
-        fileMenu.add(saveSongMenuItem);
-        fileMenu.add(saveAsMenuItem);
-        fileMenu.add(loadSongMenuItem);
-        fileMenu.addSeparator();
-        fileMenu.add(exitSongMenuItem);
-        
-        // Edit Menu
-        JMenu editMenu = new JMenu("Edit");
-        JMenuItem addLineMenuItem = new JMenuItem("Add Line...");
-        JMenuItem cutMenuItem = new JMenuItem(actionMap.get(DefaultEditorKit.cutAction));
-        cutMenuItem.setText("Cut");
-        JMenuItem copyMenuItem = new JMenuItem(actionMap.get(DefaultEditorKit.copyAction));
-        copyMenuItem.setText("Copy");
-        JMenuItem pasteMenuItem = new JMenuItem(actionMap.get(DefaultEditorKit.pasteAction));
-        pasteMenuItem.setText("Paste");
-        
-        editMenu.add(addLineMenuItem);
-        editMenu.addSeparator();
-        editMenu.add(cutMenuItem);
-        editMenu.add(copyMenuItem);
-        editMenu.add(pasteMenuItem);
-        
-        menuBar.add(fileMenu);
-        menuBar.add(editMenu);
-        
-        // Exit Action
-        exitSongMenuItem.addActionListener(e -> System.exit(0));
-        
-        // New Song Action
-        newSongMenuItem.addActionListener(e -> resetGUI());
-
-        addLineMenuItem.addActionListener(e -> addLineAction());
-        saveSongMenuItem.addActionListener(e -> saveSongAction());
-        saveAsMenuItem.addActionListener(e -> saveSongAsAction());
-        loadSongMenuItem.addActionListener(e -> loadSongAction());
-
-        return menuBar;
-    }
-
     private void removeLinePanel(SongLinePanel panelToRemove) {
         int index = songLinePanels.indexOf(panelToRemove);
         if (index != -1) {
@@ -322,7 +271,7 @@ public class SongBuilderGUI {
             updateModelFromUI();
             try {
                 songManager.saveSong(songManager.getCurrentFile());
-                // Silent save for uninterrupted workflow
+            // Silent save for uninterrupted workflow
             } catch (IOException ex) {
                 JOptionPane.showMessageDialog(frame, "Error saving file: " + ex.getMessage(), "Save Error", JOptionPane.ERROR_MESSAGE);
                 ex.printStackTrace();
@@ -383,7 +332,7 @@ public class SongBuilderGUI {
         songManager.getCurrentSong().setName(name);
     }
 
-/**
+    /**
      * Propagates a tuning change from the global tuning fields 
      * down to all active song line panels in the UI immediately.
      * Handles empty strings gracefully to preserve formatting during backspaces.
@@ -391,7 +340,7 @@ public class SongBuilderGUI {
      * @param newTuning The new tuning value.
      */
     private void applyTuningChange(int stringIndex, String newTuning) {
-        // Default to a blank space if the user clears the field, maintaining the 2-character grid alignment
+        // Default to a blank space if the user clears the field
         String tuningToApply = (newTuning == null || newTuning.isEmpty()) ? " " : newTuning;
         
         for (SongLinePanel panel : songLinePanels) {
