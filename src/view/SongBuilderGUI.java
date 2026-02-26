@@ -33,7 +33,7 @@ public class SongBuilderGUI {
     
     private JFrame frame;
     private SongHeaderPanel headerPanel;
-    private ArrayList<SongLinePanel> songLinePanels;
+    private final ArrayList<SongLinePanel> songLinePanels;
     private TuningPanel tuningPanel;
     private JScrollPane scrollPane;
     private JPanel songLinePanelContainer;

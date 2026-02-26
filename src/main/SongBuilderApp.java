@@ -34,7 +34,9 @@ public class SongBuilderApp {
             try {
                 SongManager manager = new SongManager();
                 SongBuilderGUI gui = new SongBuilderGUI();
+                @SuppressWarnings("unused")
                 SongController controller = new SongController(gui, manager);
+    
             } catch (Exception e) {
                 LOGGER.log(Level.SEVERE, "Fatal error initializing SongBuilder GUI:", e);
             }

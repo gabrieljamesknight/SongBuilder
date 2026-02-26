@@ -2,6 +2,9 @@ package view.listeners;
 
 import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
 import javax.swing.JTextField;
 import javax.swing.SwingUtilities;
 import javax.swing.event.DocumentEvent;
@@ -15,6 +18,7 @@ import javax.swing.text.BadLocationException;
  */
 public class ChordsInputHandler {
 
+    private static final Logger LOGGER = Logger.getLogger(ChordsInputHandler.class.getName());
     private final JTextField chordsField;
 
     public ChordsInputHandler(JTextField chordsField) {
@@ -47,36 +51,47 @@ public class ChordsInputHandler {
                  }
             }
 
-            @Override
+@Override
             public void keyPressed(KeyEvent e) {
                 int caretPos = chordsField.getCaretPosition();
                 String text = chordsField.getText();
 
-                if (e.getKeyCode() == KeyEvent.VK_BACK_SPACE) {
-                    // Prevent bulk deletion from breaking the grid
-                    if (chordsField.getSelectionStart() != chordsField.getSelectionEnd()) {
-                        e.consume();
-                        return;
+                // Modern Java Rule Switch prevents fall-through bugs and is much cleaner to read
+                switch (e.getKeyCode()) {
+                    case KeyEvent.VK_BACK_SPACE -> {
+                        // Prevent bulk deletion from breaking the grid
+                        if (chordsField.getSelectionStart() != chordsField.getSelectionEnd()) {
+                            e.consume();
+                            return;
+                        }
+                        
+                        if (caretPos > 0) {
+                            e.consume();
+                            // Hijack the backspace
+                            replaceWithSpace(caretPos - 1);
+                        } else {
+                            e.consume();
+                        }
                     }
-                    
-                    if (caretPos > 0) {
-                        e.consume(); // Hijack the backspace
-                        replaceWithSpace(caretPos - 1);
-                    } else {
-                        e.consume();
-                    }
-                } else if (e.getKeyCode() == KeyEvent.VK_DELETE) {
-                    if (chordsField.getSelectionStart() != chordsField.getSelectionEnd()) {
-                        e.consume();
-                        return;
-                    }
+                        
+                    case KeyEvent.VK_DELETE -> {
+                        if (chordsField.getSelectionStart() != chordsField.getSelectionEnd()) {
+                            e.consume();
+                            return;
+                        }
 
-                    if (caretPos < text.length()) {
-                        e.consume(); // Hijack the delete key
-                        replaceWithSpace(caretPos);
+                        if (caretPos < text.length()) {
+                            e.consume();
+                            // Hijack the delete key
+                            replaceWithSpace(caretPos);
+                        }
                     }
-                } else if (e.getKeyCode() == KeyEvent.VK_SPACE) {
-                    e.consume();
+                        
+                    case KeyEvent.VK_SPACE -> e.consume();
+                        
+                    default -> {
+                        // Do nothing for other keys
+                    }
                 }
             }
         });
@@ -88,9 +103,10 @@ public class ChordsInputHandler {
             public void insertUpdate(DocumentEvent e) {
                 // Only trim the next space if the user typed a visible chord character.
                 if (e.getLength() == 1) {
-                    SwingUtilities.invokeLater(() -> {
+                     SwingUtilities.invokeLater(() -> {
                         try {
                             int offset = e.getOffset();
+                            
                             String text = chordsField.getText();
                             String insertedChar = text.substring(offset, offset + 1);
                             
@@ -98,7 +114,7 @@ public class ChordsInputHandler {
                                 chordsField.getDocument().remove(offset + 1, 1);
                             }
                         } catch (BadLocationException ex) {
-                            ex.printStackTrace();
+                            LOGGER.log(Level.WARNING, "Failed to maintain chord grid formatting on insert", ex);
                         }
                     });
                 }
@@ -118,7 +134,7 @@ public class ChordsInputHandler {
             chordsField.getDocument().insertString(position, " ", null);
             chordsField.setCaretPosition(position);
         } catch (BadLocationException ex) {
-            ex.printStackTrace();
+            LOGGER.log(Level.WARNING, "Failed to replace character with space at position " + position, ex);
         }
     }
 }

@@ -37,9 +37,12 @@ import view.listeners.TablatureInputHandler;
 public class SongLinePanel extends JPanel {
     private JTextField chordsField, lyricsField;
     private JTextArea tablatureArea;
-    private SongLine songLine;
+    private final SongLine songLine;
     protected boolean isProgrammaticUpdate = false;
     private Consumer<SongLinePanel> onRemoveCallback;
+    private ChordsInputHandler chordsHandler;
+    private TablatureInputHandler tablatureHandler;
+    private LyricsInputHandler lyricsHandler;
 
     /**
      * Constructs a new SongLinePanel, initializing the UI components and their respective layout constraints.
@@ -86,7 +89,7 @@ public class SongLinePanel extends JPanel {
             new EmptyBorder(0, 30, 0, 0)
         ));
 
-        new ChordsInputHandler(chordsField);
+        this.chordsHandler = new ChordsInputHandler(chordsField);
     }
 
     /**
@@ -114,7 +117,7 @@ public class SongLinePanel extends JPanel {
         Tablature emptyTablature = new Tablature();
         tablatureArea.setText(emptyTablature.toString());
 
-        new TablatureInputHandler(tablatureArea);
+        this.tablatureHandler = new TablatureInputHandler(tablatureArea);
     }
 
     /**
@@ -124,7 +127,7 @@ public class SongLinePanel extends JPanel {
      */
     private void initLyricsField(Font font) {
         lyricsField = new JTextField();
-        new LyricsInputHandler(lyricsField, font);
+        this.lyricsHandler = new LyricsInputHandler(lyricsField, font);
     }
 
     /**
@@ -225,4 +228,8 @@ public class SongLinePanel extends JPanel {
     public JTextField getChordsField() { return chordsField; }
     public JTextField getLyricsField() { return lyricsField; }
     public JTextArea getTablatureArea() { return tablatureArea; }
+
+    public ChordsInputHandler getChordsHandler() { return chordsHandler; }
+    public TablatureInputHandler getTablatureHandler() { return tablatureHandler; }
+    public LyricsInputHandler getLyricsHandler() { return lyricsHandler; }
 }
