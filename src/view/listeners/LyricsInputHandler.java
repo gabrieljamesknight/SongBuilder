@@ -1,6 +1,7 @@
 package view.listeners;
 
 import java.awt.Font;
+
 import javax.swing.JTextField;
 import javax.swing.border.EmptyBorder;
 import javax.swing.text.AbstractDocument;
@@ -15,7 +16,7 @@ import view.components.LengthFilter;
 public class LyricsInputHandler {
 
     private final JTextField lyricsField;
-    private static final int MAX_LYRIC_LENGTH = 65;
+    private static final int MAX_LYRIC_LENGTH = 56;
     private static final int LEFT_PADDING = 30;
 
     /**

@@ -48,14 +48,14 @@ public class SongLinePanel extends JPanel {
         super();
         this.setLayout(new GridBagLayout());
         this.songLine = new SongLine();
-        Font font = new Font("Arial", Font.PLAIN, 16);
+        Font lyricsFont = new Font("Monospaced", Font.PLAIN, 16);
 
         this.setMaximumSize(new Dimension(850, 200));
 
         // --- Initialize Modular Fields ---
         initChordsField();
         initTablatureArea();
-        initLyricsField(font);
+        initLyricsField(lyricsFont);
 
         JButton removeButton = new JButton("🗑");
         removeButton.setToolTipText("Remove this line");
