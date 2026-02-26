@@ -22,8 +22,6 @@ public class SongManager {
     /** The current song being edited in the application. */
     private Song currentSong;
     
-    /** The default directory path for saving/loading files. */
-    private final String directoryPath = System.getProperty("user.dir");
     
     /** Gson instance configured for pretty printing JSON output. */
     private final Gson gson;

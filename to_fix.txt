@@ -1,5 +1,4 @@
-Problems:
-- Because lyrics field text isn't monospaced, the field maximum length is either too long or too short depending on the text entered.
+Problems: 
 
 (Definite) Improvements:
 - Add more modern look to songline presentation.
