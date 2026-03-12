@@ -224,8 +224,8 @@ public class SongLinePanel extends JPanel {
 
         gbc.gridx = 0; 
         gbc.gridy = 2;
-        gbc.insets = new Insets(0, 15, 5, 10);
-        gbc.anchor = GridBagConstraints.CENTER;
+        gbc.insets = new Insets(0, 20, 5, 15);
+        gbc.anchor = GridBagConstraints.EAST;
         this.add(dragHandleLabel, gbc);
     }
 

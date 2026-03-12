@@ -6,7 +6,6 @@ Problems:
 - Add option for bass tabs.
 - Add tempo to songs.
 - Add autoscroll feature.
-- Make it so that songlines can be rearranged.
 
 (Maybe) Improvements:
 - Make it so that tabs can be exported and shared.
