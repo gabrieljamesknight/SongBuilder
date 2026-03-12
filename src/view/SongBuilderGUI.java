@@ -179,9 +179,20 @@ public class SongBuilderGUI {
     private void removeLinePanel(SongLinePanel panelToRemove) {
         int index = songLinePanels.indexOf(panelToRemove);
         if (index != -1) {
+            // Notify the controller
             removeLineCallback.accept(index);
+            
+            // Remove from the UI tracking list
             songLinePanels.remove(index);
-            songLinePanelContainer.remove(panelToRemove);
+            
+            // Rebuild the container to clear orphaned vertical struts
+            songLinePanelContainer.removeAll();
+            for (int i = 0; i < songLinePanels.size(); i++) {
+                if (i > 0) {
+                    songLinePanelContainer.add(Box.createVerticalStrut(20));
+                }
+                songLinePanelContainer.add(songLinePanels.get(i));
+            }
             
             frame.revalidate();
             frame.repaint();
