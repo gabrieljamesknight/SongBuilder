@@ -1,7 +1,8 @@
 Problems: 
 
 (Definite) Improvements:
-- Add more modern look to songline presentation.
+- Add more modern look to songline presentation. (Part the way there but could still look better)
+- Add duplicate line feature.
 - Add a front page.
 - Add option for bass tabs.
 - Add tempo to songs.

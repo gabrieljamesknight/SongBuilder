@@ -105,11 +105,11 @@ public class SongLinePanel extends JPanel {
         LengthFilter lengthFilter = new LengthFilter(50);
         ((AbstractDocument) chordsField.getDocument()).setDocumentFilter(lengthFilter);
         
+        // Use the native rounded border and apply necessary padding for text alignment
         chordsField.setBorder(BorderFactory.createCompoundBorder(
-            BorderFactory.createLineBorder(Color.BLACK, 2),
-            new EmptyBorder(0, 30, 0, 0)
+            javax.swing.UIManager.getBorder("TextField.border"),
+            new EmptyBorder(4, 30, 4, 4)
         ));
-
         this.chordsHandler = new ChordsInputHandler(chordsField);
     }
 

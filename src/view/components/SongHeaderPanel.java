@@ -37,7 +37,7 @@ public class SongHeaderPanel extends JPanel {
         songNameField.setBackground(new Color(60, 60, 60));
         songNameField.setForeground(Color.WHITE);
         songNameField.setBorder(BorderFactory.createCompoundBorder(
-            BorderFactory.createLineBorder(new Color(80, 80, 80), 1),
+            javax.swing.UIManager.getBorder("TextField.border"),
             BorderFactory.createEmptyBorder(5, 5, 5, 5) 
         ));
         
