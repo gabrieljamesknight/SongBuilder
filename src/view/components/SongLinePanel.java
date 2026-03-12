@@ -47,6 +47,7 @@ public class SongLinePanel extends JPanel {
     private ChordsInputHandler chordsHandler;
     private TablatureInputHandler tablatureHandler;
     private LyricsInputHandler lyricsHandler;
+    private Dimension normalSize = null;
 
     /**
      * Constructs a new SongLinePanel, initializing the UI components and their respective layout constraints.
@@ -217,6 +218,7 @@ public class SongLinePanel extends JPanel {
 
         // --- ROW 4: Drag Handle ---
         dragHandleLabel = new JLabel("≡");
+        dragHandleLabel.setName("dragHandle");
         dragHandleLabel.setFont(new Font("Arial", Font.BOLD, 28));
         dragHandleLabel.setForeground(new Color(100, 100, 100));
         dragHandleLabel.setCursor(java.awt.Cursor.getPredefinedCursor(java.awt.Cursor.HAND_CURSOR));
@@ -253,6 +255,35 @@ public class SongLinePanel extends JPanel {
                 });
             }
         }
+    }
+
+    /**
+     * Converts this panel into a visual drop-zone placeholder during a drag event.
+     * This keeps the component in the window hierarchy so mouse focus is never lost.
+     */
+    public void setPlaceholderMode(boolean active) {
+        if (active) {
+            normalSize = getSize();
+            setPreferredSize(normalSize);
+            setMinimumSize(normalSize);
+            // Hide all children EXCEPT the drag handle so it keeps catching mouse events
+            for (Component c : getComponents()) {
+                if (c != dragHandleLabel) {
+                    c.setVisible(false);
+                }
+            }
+            setBorder(BorderFactory.createDashedBorder(new Color(100, 130, 200), 3, 5, 2, false));
+        } else {
+            // Restore normal view
+            for (Component c : getComponents()) {
+                c.setVisible(true);
+            }
+            setPreferredSize(null);
+            setMinimumSize(null);
+            setBorder(null);
+        }
+        revalidate();
+        repaint();
     }
 
     public void setLineNumber(int number) {
