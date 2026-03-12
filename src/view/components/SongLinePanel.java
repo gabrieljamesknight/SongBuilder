@@ -11,7 +11,6 @@ import java.awt.event.KeyEvent;
 import java.util.function.Consumer;
 
 import javax.swing.BorderFactory;
-import javax.swing.Box;
 import javax.swing.BoxLayout;
 import javax.swing.JButton;
 import javax.swing.JLabel;
@@ -48,6 +47,8 @@ public class SongLinePanel extends JPanel {
     private TablatureInputHandler tablatureHandler;
     private LyricsInputHandler lyricsHandler;
     private Dimension normalSize = null;
+    private final javax.swing.border.Border defaultBorder;
+    
 
     /**
      * Constructs a new SongLinePanel, initializing the UI components and their respective layout constraints.
@@ -59,6 +60,25 @@ public class SongLinePanel extends JPanel {
         Font lyricsFont = new Font("Monospaced", Font.PLAIN, 16);
 
         this.setMaximumSize(new Dimension(850, 240));
+
+        this.setBackground(new java.awt.Color(45, 48, 52));
+        this.setOpaque(false);
+
+        this.defaultBorder = new javax.swing.border.EmptyBorder(10, 10, 10, 10) {
+            @Override
+            public void paintBorder(java.awt.Component c, java.awt.Graphics g, int x, int y, int width, int height) {
+                java.awt.Graphics2D g2d = (java.awt.Graphics2D) g.create();
+                // Enable high-quality rendering for smooth, modern corners
+                g2d.setRenderingHint(java.awt.RenderingHints.KEY_ANTIALIASING, java.awt.RenderingHints.VALUE_ANTIALIAS_ON);
+                g2d.setRenderingHint(java.awt.RenderingHints.KEY_STROKE_CONTROL, java.awt.RenderingHints.VALUE_STROKE_PURE);
+                
+                // Draw a subtle border outline
+                g2d.setColor(new java.awt.Color(70, 75, 80)); 
+                g2d.drawRoundRect(x, y, width - 1, height - 1, 16, 16);
+                g2d.dispose();
+            }
+        };
+        this.setBorder(defaultBorder);
 
         // --- Initialize Modular Fields ---
         initHeaderComponents();
@@ -280,7 +300,7 @@ public class SongLinePanel extends JPanel {
             }
             setPreferredSize(null);
             setMinimumSize(null);
-            setBorder(null);
+            setBorder(defaultBorder);
         }
         revalidate();
         repaint();

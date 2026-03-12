@@ -114,7 +114,12 @@ public class SongBuilderGUI {
         // Song Line Container (Scrollable area for tablature)
         songLinePanelContainer = new JPanel();
         songLinePanelContainer.setLayout(new BoxLayout(songLinePanelContainer, BoxLayout.Y_AXIS));
-        songLinePanelContainer.setBorder(new EmptyBorder(5, 5, 45, 5));
+        songLinePanelContainer.setBorder(new EmptyBorder(15, 10, 45, 10));
+        songLinePanelContainer.setBackground(new java.awt.Color(25, 27, 30));
+        
+        // Ensure the scroll pane viewport matches the container's deep background
+        scrollPane = new JScrollPane(songLinePanelContainer);
+        scrollPane.getViewport().setBackground(new java.awt.Color(25, 27, 30));
 
         scrollPane = new JScrollPane(songLinePanelContainer);
         scrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_ALWAYS);    

@@ -1,7 +1,10 @@
 Problems: 
 
 (Definite) Improvements:
-- Add more modern look to songline presentation. (Part the way there but could still look better)
+- Add more modern look to songline presentation.
+- Split up fullscreen GUI into two sections:
+    - Left Sidebar (Song Navigator): A dynamic index of user-defined song sections (Intro, Verse, Chorus) that can be clicked through.
+    - Right Sidebar (Song Metadata & Scratchpad): A dedicated area for global song settings like Capo position, Tempo (BPM), Time Signature, maybe rough lyric and strumming pattern ideas too.
 - Add duplicate line feature.
 - Add a front page.
 - Add option for bass tabs.
