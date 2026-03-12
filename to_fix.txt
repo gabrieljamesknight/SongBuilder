@@ -6,7 +6,6 @@ Problems:
 - Add option for bass tabs.
 - Add tempo to songs.
 - Add autoscroll feature.
-- Add labels for songlines such as verse/chorus, songlines will each have a number with their position in the song and an empty unbordered ghost input field
 - Make it so that songlines can be rearranged.
 
 (Maybe) Improvements:
