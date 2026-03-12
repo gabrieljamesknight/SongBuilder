@@ -170,7 +170,6 @@ public class SongBuilderGUI {
             songLinePanelContainer.add(Box.createVerticalStrut(20));
         }
 
-        // Attach drag-and-drop functionality
         newPanel.getDragHandle().addMouseListener(dragDropHandler);
         newPanel.getDragHandle().addMouseMotionListener(dragDropHandler);
         
@@ -257,7 +256,6 @@ public class SongBuilderGUI {
                 songLinePanelContainer.add(Box.createVerticalStrut(20));
             }
 
-            // Attach drag-and-drop functionality
             newPanel.getDragHandle().addMouseListener(dragDropHandler);
             newPanel.getDragHandle().addMouseMotionListener(dragDropHandler);
             
