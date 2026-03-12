@@ -21,6 +21,7 @@ import view.components.SongBuilderMenuBar;
 import view.components.SongHeaderPanel;
 import view.components.SongLinePanel;
 import view.components.TuningPanel;
+import view.listeners.PanelDragDropHandler;
 
 /**
  * The main graphical user interface for the SongBuilder application.
@@ -37,6 +38,7 @@ public class SongBuilderGUI {
     private TuningPanel tuningPanel;
     private JScrollPane scrollPane;
     private JPanel songLinePanelContainer;
+    private PanelDragDropHandler dragDropHandler;
 
     // Action Callbacks (injected by the Controller)
     private Runnable newSongAction = () -> {};
@@ -119,6 +121,13 @@ public class SongBuilderGUI {
         frame.add(scrollPane, BorderLayout.CENTER);
         scrollPane.getVerticalScrollBar().setUnitIncrement(15);
 
+        // Initialize the drag-and-drop handler
+        dragDropHandler = new PanelDragDropHandler(
+            songLinePanelContainer, 
+            songLinePanels, 
+            this::updateAllLineNumbers
+        );
+
         updateMenuBar();
 
         // Add Initial Panel
@@ -160,6 +169,10 @@ public class SongBuilderGUI {
         if (!songLinePanels.isEmpty()) {
             songLinePanelContainer.add(Box.createVerticalStrut(20));
         }
+
+        // Attach drag-and-drop functionality
+        newPanel.getDragHandle().addMouseListener(dragDropHandler);
+        newPanel.getDragHandle().addMouseMotionListener(dragDropHandler);
         
         songLinePanels.add(newPanel);
         songLinePanelContainer.add(newPanel);
@@ -243,6 +256,10 @@ public class SongBuilderGUI {
             if (i > 0) {
                 songLinePanelContainer.add(Box.createVerticalStrut(20));
             }
+
+            // Attach drag-and-drop functionality
+            newPanel.getDragHandle().addMouseListener(dragDropHandler);
+            newPanel.getDragHandle().addMouseMotionListener(dragDropHandler);
             
             songLinePanelContainer.add(newPanel);
             songLinePanels.add(newPanel);
@@ -250,6 +267,16 @@ public class SongBuilderGUI {
         
         frame.revalidate();
         frame.repaint();
+    }
+
+    /**
+     * Recalculates and updates the visual line numbers for all active panels.
+     * Triggered automatically after a drag-and-drop reorder.
+     */
+    private void updateAllLineNumbers() {
+        for (int i = 0; i < songLinePanels.size(); i++) {
+            songLinePanels.get(i).setLineNumber(i + 1);
+        }
     }
 
     /**
