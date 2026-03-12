@@ -6,17 +6,20 @@ public class SongLine implements Serializable {
     private String chords;
     private String lyrics;
     private Tablature tablature;
+    private String sectionLabel;
 
     public SongLine(String chords, String lyrics, Tablature tablature) {
         this.chords = chords;
         this.lyrics = lyrics;
         this.tablature = tablature;
+        this.sectionLabel = sectionLabel;
     }
 
     public SongLine() {
         this.chords = "";
         this.lyrics = "";
         this.tablature = new Tablature();
+        this.sectionLabel = "";
     }
 
     public String getChords() {
@@ -41,5 +44,13 @@ public class SongLine implements Serializable {
 
     public void setTablature(Tablature tablature) {
         this.tablature = tablature;
+    }
+
+    public String getSectionLabel() {
+        return sectionLabel;
+    }
+
+    public void setSectionLabel(String sectionLabel) {
+        this.sectionLabel = sectionLabel;
     }
 }

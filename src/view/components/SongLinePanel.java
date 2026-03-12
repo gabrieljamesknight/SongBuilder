@@ -12,7 +12,9 @@ import java.util.function.Consumer;
 
 import javax.swing.BorderFactory;
 import javax.swing.Box;
+import javax.swing.BoxLayout;
 import javax.swing.JButton;
+import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JTextArea;
 import javax.swing.JTextField;
@@ -35,7 +37,8 @@ import view.listeners.TablatureInputHandler;
  * formatting rules to dedicated listener classes to maintain a clean architecture.
  */
 public class SongLinePanel extends JPanel {
-    private JTextField chordsField, lyricsField;
+    private JTextField chordsField, lyricsField, sectionLabelField;
+    private JLabel lineNumberLabel;
     private JTextArea tablatureArea;
     private final SongLine songLine;
     protected boolean isProgrammaticUpdate = false;
@@ -53,9 +56,10 @@ public class SongLinePanel extends JPanel {
         this.songLine = new SongLine();
         Font lyricsFont = new Font("Monospaced", Font.PLAIN, 16);
 
-        this.setMaximumSize(new Dimension(850, 200));
+        this.setMaximumSize(new Dimension(850, 240));
 
         // --- Initialize Modular Fields ---
+        initHeaderComponents();
         initChordsField();
         initTablatureArea();
         initLyricsField(lyricsFont);
@@ -70,6 +74,21 @@ public class SongLinePanel extends JPanel {
         });
 
         layoutComponents(removeButton);
+    }
+
+    private void initHeaderComponents() {
+        lineNumberLabel = new JLabel("# ");
+        lineNumberLabel.setFont(new Font("Arial", Font.BOLD, 14));
+        lineNumberLabel.setForeground(new Color(150, 150, 150));
+
+        sectionLabelField = new JTextField();
+        sectionLabelField.setFont(new Font("Arial", Font.ITALIC | Font.BOLD, 14));
+        sectionLabelField.setForeground(new Color(200, 200, 200));
+        sectionLabelField.setOpaque(false); // Makes the background transparent
+        sectionLabelField.setBorder(BorderFactory.createEmptyBorder(0, 5, 0, 0)); // Removes the border
+        
+        // Add a document filter to prevent excessively long labels breaking the UI
+        ((AbstractDocument) sectionLabelField.getDocument()).setDocumentFilter(new LengthFilter(30));
     }
 
     /**
@@ -136,6 +155,20 @@ public class SongLinePanel extends JPanel {
      */
     private void layoutComponents(JButton removeButton) {
         int targetWidth = 600;
+        
+        // 1. Header (Line Number & Section Label)
+        JPanel headerPanel = new JPanel();
+        headerPanel.setLayout(new BoxLayout(headerPanel, BoxLayout.X_AXIS));
+        headerPanel.setOpaque(false);
+        // Add 30px left padding so the label perfectly aligns with the chords text
+        headerPanel.setBorder(new EmptyBorder(0, 30, 0, 0)); 
+        headerPanel.setPreferredSize(new Dimension(targetWidth, 25));
+        headerPanel.setMaximumSize(new Dimension(targetWidth, 25));
+        
+        headerPanel.add(lineNumberLabel);
+        headerPanel.add(sectionLabelField);
+
+        // 2. Component Dimensions
         Dimension chordsDim = new Dimension(targetWidth, 35);
         Dimension tabDim    = new Dimension(targetWidth, 100);
         Dimension lyricsDim = new Dimension(targetWidth, 26);
@@ -152,27 +185,38 @@ public class SongLinePanel extends JPanel {
         GridBagConstraints gbc = new GridBagConstraints();
         gbc.fill = GridBagConstraints.NONE;
         
+        // --- ROW 0: Header ---
         gbc.gridx = 1; gbc.gridy = 0;
+        gbc.insets = new Insets(0, 0, 2, 0); 
+        gbc.anchor = GridBagConstraints.WEST;
+        this.add(headerPanel, gbc);
+
+        // --- ROW 1: Chords ---
+        gbc.gridx = 1; gbc.gridy = 1;
         gbc.insets = new Insets(0, 0, 5, 0); 
         gbc.anchor = GridBagConstraints.CENTER;
         this.add(chordsField, gbc);
-        
-        gbc.gridy = 1; 
+
+        // --- ROW 2: Tablature & Remove Button ---
+        gbc.gridx = 1; gbc.gridy = 2; 
+        gbc.insets = new Insets(0, 0, 5, 0);
         gbc.anchor = GridBagConstraints.CENTER; 
         this.add(tablatureArea, gbc);
 
-        gbc.gridx = 2; gbc.gridy = 1;
+        gbc.gridx = 2; gbc.gridy = 2;
         gbc.insets = new Insets(0, 15, 5, 0); 
         gbc.anchor = GridBagConstraints.WEST;
         this.add(removeButton, gbc);
 
-        gbc.gridx = 1; gbc.gridy = 2;
+        // --- ROW 3: Lyrics ---
+        gbc.gridx = 1; gbc.gridy = 3;
         gbc.insets = new Insets(0, 0, 15, 0); 
         gbc.anchor = GridBagConstraints.CENTER;
         this.add(lyricsField, gbc);
 
+        // --- Layout Spacer ---
         Component dummy = Box.createRigidArea(new Dimension(55, 0));
-        gbc.gridx = 0; gbc.gridy = 1;
+        gbc.gridx = 0; gbc.gridy = 2;
         gbc.insets = new Insets(0, 0, 0, 0);
         this.add(dummy, gbc);
     }
@@ -203,6 +247,10 @@ public class SongLinePanel extends JPanel {
         }
     }
 
+    public void setLineNumber(int number) {
+        lineNumberLabel.setText(String.valueOf(number) + ". ");
+    }
+
     /**
      * Sets the callback to be executed when the remove button is clicked.
      * * @param callback The consumer function to handle panel removal.
@@ -218,8 +266,10 @@ public class SongLinePanel extends JPanel {
         songLine.setChords(getChords());
         songLine.setLyrics(getLyrics());
         songLine.setTablature(getTablature());
+        songLine.setSectionLabel(sectionLabelField.getText().trim());
     }
 
+    public JTextField getSectionLabelField() { return sectionLabelField; }
     public SongLine getSongLine() { return songLine; }
     public String getChords() { return chordsField.getText(); }
     public String getLyrics() { return lyricsField.getText(); }

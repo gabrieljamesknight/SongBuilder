@@ -152,21 +152,23 @@ public class SongBuilderGUI {
      */
     public void addLineAction() {
         SongLinePanel newPanel = new SongLinePanel();
+        
+        // Assign the current line number based on the array size
+        newPanel.setLineNumber(songLinePanels.size() + 1);
         newPanel.setOnRemoveCallback(this::removeLinePanel);
         
-        // Only add spacing if this isn't the first panel being added to the container
         if (!songLinePanels.isEmpty()) {
             songLinePanelContainer.add(Box.createVerticalStrut(20));
         }
         
         songLinePanels.add(newPanel);
         songLinePanelContainer.add(newPanel);
-        
-        // Auto-scroll to the newly added line to maintain user flow
+
         SwingUtilities.invokeLater(() -> {
             JScrollBar vertical = scrollPane.getVerticalScrollBar();
             vertical.setValue(vertical.getMaximum());
         });
+
         frame.revalidate();
         frame.repaint();
     }
@@ -178,20 +180,21 @@ public class SongBuilderGUI {
      */
     private void removeLinePanel(SongLinePanel panelToRemove) {
         int index = songLinePanels.indexOf(panelToRemove);
+
         if (index != -1) {
-            // Notify the controller
             removeLineCallback.accept(index);
-            
-            // Remove from the UI tracking list
             songLinePanels.remove(index);
-            
-            // Rebuild the container to clear orphaned vertical struts
             songLinePanelContainer.removeAll();
+
+            // Rebuild the container and update line numbers to prevent skipping
             for (int i = 0; i < songLinePanels.size(); i++) {
+                SongLinePanel panel = songLinePanels.get(i);
+                panel.setLineNumber(i + 1); // Recalculate 1-based index
+                
                 if (i > 0) {
                     songLinePanelContainer.add(Box.createVerticalStrut(20));
                 }
-                songLinePanelContainer.add(songLinePanels.get(i));
+                songLinePanelContainer.add(panel);
             }
             
             frame.revalidate();
@@ -210,8 +213,7 @@ public class SongBuilderGUI {
         songLinePanelContainer.removeAll();
         
         headerPanel.setSongName(song.getName());
-        
-        // Sync global tuning fields based on the first line of the song
+
         if (!song.getSongLines().isEmpty()) {
             SongLine firstLine = song.getSongLines().get(0);
             for (int i = 0; i < 6; i++) {
@@ -220,19 +222,24 @@ public class SongBuilderGUI {
             }
         }
 
-        // Recreate all panels to reflect the new song data
         for (int i = 0; i < song.getSongLines().size(); i++) {
             SongLine songLine = song.getSongLines().get(i);
             SongLinePanel newPanel = new SongLinePanel();
+            
+            newPanel.setLineNumber(i + 1); // Set the line number during data load
             
             newPanel.getChordsField().setText(songLine.getChords());
             newPanel.getLyricsField().setText(songLine.getLyrics());
             newPanel.getTablatureArea().setText(songLine.getTablature().toString());
             
+            // Populate the new section label safely
+            if (songLine.getSectionLabel() != null) {
+                newPanel.getSectionLabelField().setText(songLine.getSectionLabel());
+            }
+            
             newPanel.updateSongLine();
             newPanel.setOnRemoveCallback(this::removeLinePanel);
-            
-            // Only add spacing before the panel, matching addLineAction's logic
+
             if (i > 0) {
                 songLinePanelContainer.add(Box.createVerticalStrut(20));
             }
