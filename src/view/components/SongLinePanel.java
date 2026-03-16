@@ -127,7 +127,7 @@ public class SongLinePanel extends JPanel {
         /** * Inject the custom Java2D icon. 
          * Using a modern alert red (e.g., #DC3545) for the flat aesthetic.
          */
-        removeButton.setIcon(new TrashIcon(24, 28, new java.awt.Color(220, 53, 69)));
+        removeButton.setIcon(new TrashIcon(30, 35, new java.awt.Color(220, 53, 69)));
         removeButton.setToolTipText("Remove this line");
         removeButton.setFocusable(false); 
         
@@ -263,6 +263,10 @@ public class SongLinePanel extends JPanel {
     private void layoutComponents(JButton removeButton) {
         int targetWidth = 600;
         
+        // Strip hidden default margins from the JButton to prevent visual offset
+        removeButton.setMargin(new Insets(0, 0, 0, 0));
+        removeButton.setBorder(BorderFactory.createEmptyBorder());
+
         // 1. Line Number Label Styling (Outside the Box)
         lineNumberLabel.setHorizontalAlignment(JLabel.CENTER);
         lineNumberLabel.setFont(new Font("Arial", Font.BOLD, 28)); 
@@ -282,68 +286,78 @@ public class SongLinePanel extends JPanel {
         lyricsField.setMaximumSize(lyricsDim);
 
         // 3. Drag Handle Setup (Inside the Box)
-        dragHandleLabel = new JLabel("≡");
+        dragHandleLabel = new JLabel();
         dragHandleLabel.setName("dragHandle");
-        dragHandleLabel.setFont(new Font("Arial", Font.BOLD, 28));
-        dragHandleLabel.setForeground(new Color(100, 100, 100));
+        dragHandleLabel.setIcon(new DragHandleIcon(25, 30, new Color(100, 100, 100)));
         dragHandleLabel.setCursor(java.awt.Cursor.getPredefinedCursor(java.awt.Cursor.HAND_CURSOR));
         dragHandleLabel.setToolTipText("Click and drag to reorder this line");
-
+        
         // --- Left Margin Panel (Contains ONLY the Line Number) ---
         JPanel leftMarginPanel = new JPanel(new GridBagLayout());
         leftMarginPanel.setOpaque(false);
         GridBagConstraints marginGbc = new GridBagConstraints();
-        marginGbc.insets = new Insets(0, 0, 0, 15); // Gap between number and the card
+        marginGbc.insets = new Insets(0, 0, 0, 15);
         marginGbc.anchor = GridBagConstraints.CENTER;
         leftMarginPanel.add(lineNumberLabel, marginGbc);
-
+        
         // --- Inner Content Panel (The "Card") ---
         GridBagConstraints gbc = new GridBagConstraints();
         gbc.fill = GridBagConstraints.NONE;
         
-        // --- DRAG HANDLE (Spans all 3 rows on the left edge) ---
-        gbc.gridx = 0; 
-        gbc.gridy = 0;
-        gbc.gridheight = 3;
-        gbc.insets = new Insets(0, 10, 0, 10); // Nice padding creating a grip area
+        // --- COLUMN 0: DRAG HANDLE ---
+        gbc.gridx = 0;
+        gbc.gridy = 1;
+        gbc.gridwidth = 1;
+        gbc.gridheight = 1;
+        // Allocate 100% of the available empty space on the left to this column
+        gbc.weightx = 1.0; 
+        // Remove fixed insets; let the CENTER anchor float the icon perfectly in the middle
+        gbc.insets = new Insets(0, 0, 5, 0);
         gbc.anchor = GridBagConstraints.CENTER;
         innerContentPanel.add(dragHandleLabel, gbc);
-
-        // --- ROW 0: Chords ---
-        gbc.gridheight = 1; // Reset height
+        
+        // --- CENTER COLUMN ELEMENTS ---
+        // Reset weightx to 0 so the center column only takes up exactly its preferred width (600px)
+        gbc.weightx = 0.0; 
+        
+        // --- COLUMN 1, ROW 0: Chords ---
         gbc.gridx = 1; 
         gbc.gridy = 0;
-        gbc.gridwidth = 2; 
-        gbc.insets = new Insets(10, 0, 5, 10); 
+        gbc.gridwidth = 1; 
+        gbc.insets = new Insets(10, 0, 5, 0); 
         gbc.anchor = GridBagConstraints.WEST;
         innerContentPanel.add(chordsField, gbc);
-
-        // --- ROW 1: Tablature Area ---
-        gbc.gridwidth = 1; // Reset width
+        
+        // --- COLUMN 1, ROW 1: Tablature Area ---
         gbc.gridx = 1;
         gbc.gridy = 1;
+        gbc.gridwidth = 1;
         gbc.insets = new Insets(0, 0, 5, 0);
         innerContentPanel.add(tablatureArea, gbc);
 
-        // --- ROW 1: Remove Button ---
-        gbc.gridx = 2; 
-        gbc.gridy = 1;
-        gbc.insets = new Insets(0, 15, 5, 10);
-        gbc.anchor = GridBagConstraints.WEST;
-        innerContentPanel.add(removeButton, gbc);
-
-        // --- ROW 2: Lyrics ---
+        // --- COLUMN 1, ROW 2: Lyrics ---
         gbc.gridx = 1;
         gbc.gridy = 2;
-        gbc.gridwidth = 2;
-        gbc.insets = new Insets(0, 0, 10, 10); 
+        gbc.gridwidth = 1; 
+        gbc.insets = new Insets(0, 0, 10, 0); 
         gbc.anchor = GridBagConstraints.WEST;
         innerContentPanel.add(lyricsField, gbc);
 
+        // --- COLUMN 2: REMOVE BUTTON ---
+        gbc.gridx = 2;
+        gbc.gridy = 1;
+        gbc.gridwidth = 1;
+        // Allocate 100% of the available empty space on the right to this column
+        gbc.weightx = 1.0;
+        // Float the button in the mathematical center of the right-hand empty space
+        gbc.insets = new Insets(0, 0, 5, 0);
+        gbc.anchor = GridBagConstraints.CENTER;
+        innerContentPanel.add(removeButton, gbc);
+        
         // Assemble the outer panel
         this.add(sectionLabelField, java.awt.BorderLayout.NORTH);
         this.add(leftMarginPanel, java.awt.BorderLayout.WEST); 
-        this.add(innerContentPanel, java.awt.BorderLayout.CENTER); 
+        this.add(innerContentPanel, java.awt.BorderLayout.CENTER);
     }
 
     /**
