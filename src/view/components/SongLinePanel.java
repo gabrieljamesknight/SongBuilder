@@ -122,12 +122,12 @@ public class SongLinePanel extends JPanel {
         // --- Setup Panel Focus Tracking ---
         setupFocusTracking();
 
-        JButton removeButton = new JButton();
         
         /** * Inject the custom Java2D icon. 
          * Using a modern alert red (e.g., #DC3545) for the flat aesthetic.
          */
-        removeButton.setIcon(new TrashIcon(30, 35, new java.awt.Color(220, 53, 69)));
+        HoverButton removeButton = new HoverButton();
+        removeButton.setIcon(new TrashIcon(30, 35, new java.awt.Color(180, 40, 55)));
         removeButton.setToolTipText("Remove this line");
         removeButton.setFocusable(false); 
         
@@ -136,7 +136,7 @@ public class SongLinePanel extends JPanel {
         removeButton.setBorderPainted(false);
         removeButton.setCursor(java.awt.Cursor.getPredefinedCursor(java.awt.Cursor.HAND_CURSOR));
         removeButton.putClientProperty("JComponent.minimumWidth", 0);
-        removeButton.setPreferredSize(new Dimension(30, 35));
+        removeButton.setPreferredSize(new Dimension(40, 40));
         
         removeButton.addActionListener(e -> {
             if (this.onRemoveCallback != null) {
@@ -351,10 +351,8 @@ public class SongLinePanel extends JPanel {
         gbc.gridx = 2;
         gbc.gridy = 1;
         gbc.gridwidth = 1;
-        // Allocate 100% of the available empty space on the right to this column
         gbc.weightx = 1.0;
-        // Counterbalance the 10px EmptyBorder on the outside by adding 10px to the left
-        gbc.insets = new Insets(0, 10, 5, 0);
+        gbc.insets = new Insets(0, 5, 5, 0); 
         gbc.anchor = GridBagConstraints.CENTER;
         innerContentPanel.add(removeButton, gbc);
         
