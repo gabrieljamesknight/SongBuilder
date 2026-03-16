@@ -135,6 +135,8 @@ public class SongLinePanel extends JPanel {
         removeButton.setContentAreaFilled(false);
         removeButton.setBorderPainted(false);
         removeButton.setCursor(java.awt.Cursor.getPredefinedCursor(java.awt.Cursor.HAND_CURSOR));
+        removeButton.putClientProperty("JComponent.minimumWidth", 0);
+        removeButton.setPreferredSize(new Dimension(30, 35));
         
         removeButton.addActionListener(e -> {
             if (this.onRemoveCallback != null) {
@@ -291,12 +293,14 @@ public class SongLinePanel extends JPanel {
         dragHandleLabel.setIcon(new DragHandleIcon(25, 30, new Color(100, 100, 100)));
         dragHandleLabel.setCursor(java.awt.Cursor.getPredefinedCursor(java.awt.Cursor.HAND_CURSOR));
         dragHandleLabel.setToolTipText("Click and drag to reorder this line");
+        dragHandleLabel.setPreferredSize(new Dimension(30, 35));
+        dragHandleLabel.setHorizontalAlignment(JLabel.CENTER);
         
         // --- Left Margin Panel (Contains ONLY the Line Number) ---
         JPanel leftMarginPanel = new JPanel(new GridBagLayout());
         leftMarginPanel.setOpaque(false);
         GridBagConstraints marginGbc = new GridBagConstraints();
-        marginGbc.insets = new Insets(0, 0, 0, 15);
+        marginGbc.insets = new Insets(11, 0, 0, 15);
         marginGbc.anchor = GridBagConstraints.CENTER;
         leftMarginPanel.add(lineNumberLabel, marginGbc);
         
@@ -310,18 +314,18 @@ public class SongLinePanel extends JPanel {
         gbc.gridwidth = 1;
         gbc.gridheight = 1;
         // Allocate 100% of the available empty space on the left to this column
-        gbc.weightx = 1.0; 
-        // Remove fixed insets; let the CENTER anchor float the icon perfectly in the middle
-        gbc.insets = new Insets(0, 0, 5, 0);
+        gbc.weightx = 1.0;
+        // Counterbalance the 10px EmptyBorder on the outside by adding 10px to the right
+        gbc.insets = new Insets(0, 0, 5, 10);
         gbc.anchor = GridBagConstraints.CENTER;
         innerContentPanel.add(dragHandleLabel, gbc);
         
         // --- CENTER COLUMN ELEMENTS ---
         // Reset weightx to 0 so the center column only takes up exactly its preferred width (600px)
-        gbc.weightx = 0.0; 
+        gbc.weightx = 0.0;
         
         // --- COLUMN 1, ROW 0: Chords ---
-        gbc.gridx = 1; 
+        gbc.gridx = 1;
         gbc.gridy = 0;
         gbc.gridwidth = 1; 
         gbc.insets = new Insets(10, 0, 5, 0); 
@@ -334,7 +338,7 @@ public class SongLinePanel extends JPanel {
         gbc.gridwidth = 1;
         gbc.insets = new Insets(0, 0, 5, 0);
         innerContentPanel.add(tablatureArea, gbc);
-
+        
         // --- COLUMN 1, ROW 2: Lyrics ---
         gbc.gridx = 1;
         gbc.gridy = 2;
@@ -342,15 +346,15 @@ public class SongLinePanel extends JPanel {
         gbc.insets = new Insets(0, 0, 10, 0); 
         gbc.anchor = GridBagConstraints.WEST;
         innerContentPanel.add(lyricsField, gbc);
-
+        
         // --- COLUMN 2: REMOVE BUTTON ---
         gbc.gridx = 2;
         gbc.gridy = 1;
         gbc.gridwidth = 1;
         // Allocate 100% of the available empty space on the right to this column
         gbc.weightx = 1.0;
-        // Float the button in the mathematical center of the right-hand empty space
-        gbc.insets = new Insets(0, 0, 5, 0);
+        // Counterbalance the 10px EmptyBorder on the outside by adding 10px to the left
+        gbc.insets = new Insets(0, 10, 5, 0);
         gbc.anchor = GridBagConstraints.CENTER;
         innerContentPanel.add(removeButton, gbc);
         
