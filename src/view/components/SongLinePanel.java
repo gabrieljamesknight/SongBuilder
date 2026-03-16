@@ -48,6 +48,8 @@ public class SongLinePanel extends JPanel {
     private LyricsInputHandler lyricsHandler;
     private Dimension normalSize = null;
     private final javax.swing.border.Border defaultBorder;
+    private final javax.swing.border.Border focusedBorder;
+    private boolean isPlaceholderActive = false;
     
 
     /**
@@ -72,12 +74,33 @@ public class SongLinePanel extends JPanel {
                 g2d.setRenderingHint(java.awt.RenderingHints.KEY_ANTIALIASING, java.awt.RenderingHints.VALUE_ANTIALIAS_ON);
                 g2d.setRenderingHint(java.awt.RenderingHints.KEY_STROKE_CONTROL, java.awt.RenderingHints.VALUE_STROKE_PURE);
                 
-                // Draw a subtle border outline
-                g2d.setColor(new java.awt.Color(70, 75, 80)); 
+                g2d.setColor(new java.awt.Color(70, 75, 80));
                 g2d.drawRoundRect(x, y, width - 1, height - 1, 16, 16);
                 g2d.dispose();
             }
         };
+        
+        /**
+         * The active border drawn when any child component has focus.
+         * Fetches the theme's native focus color and paints a thicker 2px stroke.
+         */
+        this.focusedBorder = new javax.swing.border.EmptyBorder(10, 10, 10, 10) {
+            @Override
+            public void paintBorder(java.awt.Component c, java.awt.Graphics g, int x, int y, int width, int height) {
+                java.awt.Graphics2D g2d = (java.awt.Graphics2D) g.create();
+                g2d.setRenderingHint(java.awt.RenderingHints.KEY_ANTIALIASING, java.awt.RenderingHints.VALUE_ANTIALIAS_ON);
+                g2d.setRenderingHint(java.awt.RenderingHints.KEY_STROKE_CONTROL, java.awt.RenderingHints.VALUE_STROKE_PURE);
+                
+                java.awt.Color focusColor = javax.swing.UIManager.getColor("Component.focusColor");
+                g2d.setColor(focusColor != null ? focusColor : new java.awt.Color(62, 134, 224));
+                g2d.setStroke(new java.awt.BasicStroke(2.0f));
+                
+                // Offset by 1px to account for the stroke width and prevent clipping
+                g2d.drawRoundRect(x + 1, y + 1, width - 3, height - 3, 16, 16);
+                g2d.dispose();
+            }
+        };
+
         this.setBorder(defaultBorder);
 
         // --- Initialize Modular Fields ---
@@ -85,6 +108,9 @@ public class SongLinePanel extends JPanel {
         initChordsField();
         initTablatureArea();
         initLyricsField(lyricsFont);
+        
+        // --- Setup Panel Focus Tracking ---
+        setupFocusTracking();
 
         JButton removeButton = new JButton("🗑");
         removeButton.setToolTipText("Remove this line");
@@ -310,6 +336,45 @@ public class SongLinePanel extends JPanel {
                 });
             }
         }
+    }
+
+    /**
+     * Attaches a unified focus listener to all interactive child components.
+     */
+    private void setupFocusTracking() {
+        java.awt.event.FocusAdapter focusAdapter = new java.awt.event.FocusAdapter() {
+            @Override
+            public void focusGained(java.awt.event.FocusEvent e) {
+                updatePanelBorder();
+            }
+            @Override
+            public void focusLost(java.awt.event.FocusEvent e) {
+                // invokeLater gives the FocusManager a millisecond to assign the next 
+                // focus owner so we don't accidentally drop the highlight when tabbing 
+                // between fields in the SAME panel.
+                SwingUtilities.invokeLater(() -> updatePanelBorder());
+            }
+        };
+
+        chordsField.addFocusListener(focusAdapter);
+        lyricsField.addFocusListener(focusAdapter);
+        tablatureArea.addFocusListener(focusAdapter);
+        sectionLabelField.addFocusListener(focusAdapter);
+    }
+
+    /**
+     * Determines if any child component holds focus and applies the corresponding border.
+     */
+    private void updatePanelBorder() {
+        if (isPlaceholderActive) return; // Yield to drag-and-drop dashed borders
+
+        java.awt.Component focusOwner = java.awt.KeyboardFocusManager.getCurrentKeyboardFocusManager().getFocusOwner();
+        
+        // Check if whatever currently holds focus is a child of this specific panel
+        boolean hasFocus = SwingUtilities.isDescendingFrom(focusOwner, this);
+        
+        setBorder(hasFocus ? focusedBorder : defaultBorder);
+        repaint();
     }
 
     /**
