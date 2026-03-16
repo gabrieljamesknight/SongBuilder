@@ -197,6 +197,23 @@ public class SongLinePanel extends JPanel {
      */
     private void initTablatureArea() {
         tablatureArea = new JTextArea() {
+            /**
+             * Overrides default painting to draw a rounded background.
+             * This prevents the default rectangular background from bleeding 
+             * through the corners of our rounded border.
+             */
+            @Override
+            protected void paintComponent(java.awt.Graphics g) {
+                java.awt.Graphics2D g2d = (java.awt.Graphics2D) g.create();
+                g2d.setRenderingHint(java.awt.RenderingHints.KEY_ANTIALIASING, java.awt.RenderingHints.VALUE_ANTIALIAS_ON);
+                
+                g2d.setColor(getBackground());
+                g2d.fillRoundRect(0, 0, getWidth(), getHeight(), 12, 12);
+                g2d.dispose();
+                
+                super.paintComponent(g);
+            }
+
             @Override
             protected void processKeyEvent(KeyEvent ke) {
                 if ((ke.getKeyCode() == KeyEvent.VK_C && ke.isControlDown()) || 
@@ -207,6 +224,9 @@ public class SongLinePanel extends JPanel {
                 }
             }
         };
+        
+        // Disable default rectangular opacity so our custom rounded background shows cleanly
+        tablatureArea.setOpaque(false);
         tablatureArea.setFont(new Font("Monospaced", Font.PLAIN, 12));
         
         /**
@@ -220,15 +240,30 @@ public class SongLinePanel extends JPanel {
          * is kept strictly at 5px in both states to prevent the tablature from shifting 
          * when the component gains focus.
          */
-        javax.swing.border.Border unfocusedBorder = javax.swing.BorderFactory.createCompoundBorder(
-            javax.swing.BorderFactory.createLineBorder(borderColor != null ? borderColor : java.awt.Color.GRAY, 1, true),
-            new javax.swing.border.EmptyBorder(4, 4, 4, 4)
-        );
-        
-        javax.swing.border.Border focusedBorder = javax.swing.BorderFactory.createCompoundBorder(
-            javax.swing.BorderFactory.createLineBorder(focusColor != null ? focusColor : java.awt.Color.BLUE, 2, true),
-            new javax.swing.border.EmptyBorder(3, 3, 3, 3)
-        );
+        javax.swing.border.Border unfocusedBorder = new javax.swing.border.EmptyBorder(5, 8, 5, 8) {
+            @Override
+            public void paintBorder(java.awt.Component c, java.awt.Graphics g, int x, int y, int width, int height) {
+                java.awt.Graphics2D g2d = (java.awt.Graphics2D) g.create();
+                g2d.setRenderingHint(java.awt.RenderingHints.KEY_ANTIALIASING, java.awt.RenderingHints.VALUE_ANTIALIAS_ON);
+                g2d.setColor(borderColor != null ? borderColor : java.awt.Color.GRAY);
+                g2d.setStroke(new java.awt.BasicStroke(1.0f));
+                g2d.drawRoundRect(x, y, width - 1, height - 1, 12, 12);
+                g2d.dispose();
+            }
+        };
+
+        javax.swing.border.Border focusedBorder = new javax.swing.border.EmptyBorder(5, 8, 5, 8) {
+            @Override
+            public void paintBorder(java.awt.Component c, java.awt.Graphics g, int x, int y, int width, int height) {
+                java.awt.Graphics2D g2d = (java.awt.Graphics2D) g.create();
+                g2d.setRenderingHint(java.awt.RenderingHints.KEY_ANTIALIASING, java.awt.RenderingHints.VALUE_ANTIALIAS_ON);
+                g2d.setColor(focusColor != null ? focusColor : new java.awt.Color(62, 134, 224));
+                g2d.setStroke(new java.awt.BasicStroke(2.0f));
+                // Offset by 1px to account for the thicker stroke preventing clipping
+                g2d.drawRoundRect(x + 1, y + 1, width - 3, height - 3, 12, 12);
+                g2d.dispose();
+            }
+        };
 
         tablatureArea.setBorder(unfocusedBorder);
 
@@ -340,22 +375,25 @@ public class SongLinePanel extends JPanel {
         gbc.gridx = 1;
         gbc.gridy = 0;
         gbc.gridwidth = 1; 
-        gbc.insets = new Insets(10, 0, 0, 0); 
+        /**
+         * Add a 5px bottom inset to push the tablature down slightly.
+         */
+        gbc.insets = new Insets(10, 0, 5, 0); 
         gbc.anchor = GridBagConstraints.WEST;
         innerContentPanel.add(chordsField, gbc);
-        
+
         // --- COLUMN 1, ROW 1: Tablature Area ---
         gbc.gridx = 1;
         gbc.gridy = 1;
         gbc.gridwidth = 1;
-        gbc.insets = new Insets(0, 0, 5, 0);
+        gbc.insets = new Insets(5, 0, 5, 0);
         innerContentPanel.add(tablatureArea, gbc);
-        
+
         // --- COLUMN 1, ROW 2: Lyrics ---
         gbc.gridx = 1;
         gbc.gridy = 2;
         gbc.gridwidth = 1; 
-        gbc.insets = new Insets(0, 0, 10, 0); 
+        gbc.insets = new Insets(5, 0, 10, 0); 
         gbc.anchor = GridBagConstraints.WEST;
         innerContentPanel.add(lyricsField, gbc);
         
