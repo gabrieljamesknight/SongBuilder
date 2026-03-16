@@ -122,15 +122,25 @@ public class SongLinePanel extends JPanel {
         // --- Setup Panel Focus Tracking ---
         setupFocusTracking();
 
-        JButton removeButton = new JButton("🗑");
+        JButton removeButton = new JButton();
+        
+        /** * Inject the custom Java2D icon. 
+         * Using a modern alert red (e.g., #DC3545) for the flat aesthetic.
+         */
+        removeButton.setIcon(new TrashIcon(24, 28, new java.awt.Color(220, 53, 69)));
         removeButton.setToolTipText("Remove this line");
         removeButton.setFocusable(false); 
+        
+        // Strip out the default Swing button background/border to keep it flat
+        removeButton.setContentAreaFilled(false);
+        removeButton.setBorderPainted(false);
+        removeButton.setCursor(java.awt.Cursor.getPredefinedCursor(java.awt.Cursor.HAND_CURSOR));
+        
         removeButton.addActionListener(e -> {
             if (this.onRemoveCallback != null) {
                 this.onRemoveCallback.accept(this);
             }
         });
-
         layoutComponents(removeButton);
     }
 
