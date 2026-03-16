@@ -51,6 +51,7 @@ public class SongLinePanel extends JPanel {
     private final javax.swing.border.Border focusedBorder;
     private boolean isPlaceholderActive = false;
     private JPanel innerContentPanel;
+    Dimension iconBox = new Dimension(40, 40);
     
 
     /**
@@ -122,6 +123,8 @@ public class SongLinePanel extends JPanel {
         // --- Setup Panel Focus Tracking ---
         setupFocusTracking();
 
+
+
         
         /** * Inject the custom Java2D icon. 
          * Using a modern alert red (e.g., #DC3545) for the flat aesthetic.
@@ -135,8 +138,14 @@ public class SongLinePanel extends JPanel {
         removeButton.setContentAreaFilled(false);
         removeButton.setBorderPainted(false);
         removeButton.setCursor(java.awt.Cursor.getPredefinedCursor(java.awt.Cursor.HAND_CURSOR));
+        removeButton.setMargin(new java.awt.Insets(0, 0, 0, 0));
+        removeButton.setBorder(javax.swing.BorderFactory.createEmptyBorder());
         removeButton.putClientProperty("JComponent.minimumWidth", 0);
         removeButton.setPreferredSize(new Dimension(40, 40));
+
+        removeButton.setPreferredSize(iconBox);
+        removeButton.setMinimumSize(iconBox);
+        removeButton.setMaximumSize(iconBox);
         
         removeButton.addActionListener(e -> {
             if (this.onRemoveCallback != null) {
@@ -290,17 +299,20 @@ public class SongLinePanel extends JPanel {
         // 3. Drag Handle Setup (Inside the Box)
         dragHandleLabel = new JLabel();
         dragHandleLabel.setName("dragHandle");
-        dragHandleLabel.setIcon(new DragHandleIcon(25, 30, new Color(100, 100, 100)));
+        dragHandleLabel.setIcon(new DragHandleIcon(30, 35, new Color(100, 100, 100)));
         dragHandleLabel.setCursor(java.awt.Cursor.getPredefinedCursor(java.awt.Cursor.HAND_CURSOR));
         dragHandleLabel.setToolTipText("Click and drag to reorder this line");
-        dragHandleLabel.setPreferredSize(new Dimension(30, 35));
+        dragHandleLabel.setPreferredSize(iconBox);
         dragHandleLabel.setHorizontalAlignment(JLabel.CENTER);
+        dragHandleLabel.setMinimumSize(iconBox);
+        dragHandleLabel.setMaximumSize(iconBox);
+        
         
         // --- Left Margin Panel (Contains ONLY the Line Number) ---
         JPanel leftMarginPanel = new JPanel(new GridBagLayout());
         leftMarginPanel.setOpaque(false);
         GridBagConstraints marginGbc = new GridBagConstraints();
-        marginGbc.insets = new Insets(11, 0, 0, 15);
+        marginGbc.insets = new Insets(4, 0, 0, 15);
         marginGbc.anchor = GridBagConstraints.CENTER;
         leftMarginPanel.add(lineNumberLabel, marginGbc);
         
@@ -328,7 +340,7 @@ public class SongLinePanel extends JPanel {
         gbc.gridx = 1;
         gbc.gridy = 0;
         gbc.gridwidth = 1; 
-        gbc.insets = new Insets(10, 0, 5, 0); 
+        gbc.insets = new Insets(10, 0, 0, 0); 
         gbc.anchor = GridBagConstraints.WEST;
         innerContentPanel.add(chordsField, gbc);
         
@@ -352,7 +364,7 @@ public class SongLinePanel extends JPanel {
         gbc.gridy = 1;
         gbc.gridwidth = 1;
         gbc.weightx = 1.0;
-        gbc.insets = new Insets(0, 5, 5, 0); 
+        gbc.insets = new Insets(0, 8, 7, 0); 
         gbc.anchor = GridBagConstraints.CENTER;
         innerContentPanel.add(removeButton, gbc);
         
