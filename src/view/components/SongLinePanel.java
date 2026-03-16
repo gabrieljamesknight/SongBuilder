@@ -176,11 +176,11 @@ public class SongLinePanel extends JPanel {
      */
     private void initChordsField() {
         chordsField = new JTextField();
-        chordsField.setFont(new Font("Monospaced", Font.PLAIN, 20));
-        chordsField.setText(" ".repeat(47));
+        chordsField.setFont(new Font("Monospaced", Font.PLAIN, 19));
+        chordsField.setText(" ".repeat(50));
         chordsField.setHorizontalAlignment(JTextField.LEFT);
         
-        LengthFilter lengthFilter = new LengthFilter(50);
+        LengthFilter lengthFilter = new LengthFilter(60);
         ((AbstractDocument) chordsField.getDocument()).setDocumentFilter(lengthFilter);
         
         // Use the native rounded border and apply necessary padding for text alignment
