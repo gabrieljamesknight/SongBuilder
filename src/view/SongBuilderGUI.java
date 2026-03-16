@@ -94,7 +94,7 @@ public class SongBuilderGUI {
     private void setupUI() {
         frame = new JFrame("SongBuilder");
         frame.setLayout(new BoxLayout(frame.getContentPane(), BoxLayout.Y_AXIS));
-        frame.setPreferredSize(new Dimension(850, 700));
+        frame.setPreferredSize(new Dimension(800, 700));
 
         // Initialize the new Header Panel with lazily evaluated callbacks
         headerPanel = new SongHeaderPanel(

@@ -50,6 +50,7 @@ public class SongLinePanel extends JPanel {
     private final javax.swing.border.Border defaultBorder;
     private final javax.swing.border.Border focusedBorder;
     private boolean isPlaceholderActive = false;
+    private JPanel innerContentPanel;
     
 
     /**
@@ -57,11 +58,19 @@ public class SongLinePanel extends JPanel {
      */
     public SongLinePanel() {
         super();
-        this.setLayout(new GridBagLayout());
+        this.setLayout(new java.awt.BorderLayout(0, 5));
+        this.setOpaque(false);
+        
         this.songLine = new SongLine();
         Font lyricsFont = new Font("Monospaced", Font.PLAIN, 16);
 
-        this.setMaximumSize(new Dimension(850, 240));
+        // Slightly taller to accommodate the external section label
+        this.setMaximumSize(new Dimension(850, 280)); 
+
+        // Initialize the inner panel that will hold the actual song data and receive the border
+        this.innerContentPanel = new JPanel(new GridBagLayout());
+        this.innerContentPanel.setBackground(new java.awt.Color(45, 48, 52));
+        this.innerContentPanel.setOpaque(false);
 
         this.setBackground(new java.awt.Color(45, 48, 52));
         this.setOpaque(false);
@@ -101,13 +110,14 @@ public class SongLinePanel extends JPanel {
             }
         };
 
-        this.setBorder(defaultBorder);
+        this.innerContentPanel.setBorder(defaultBorder);
 
         // --- Initialize Modular Fields ---
         initHeaderComponents();
         initChordsField();
         initTablatureArea();
         initLyricsField(lyricsFont);
+        setupFocusTracking();
         
         // --- Setup Panel Focus Tracking ---
         setupFocusTracking();
@@ -126,16 +136,17 @@ public class SongLinePanel extends JPanel {
 
     private void initHeaderComponents() {
         lineNumberLabel = new JLabel("# ");
-        lineNumberLabel.setFont(new Font("Arial", Font.BOLD, 14));
+        lineNumberLabel.setFont(new Font("Arial", Font.BOLD, 18));
         lineNumberLabel.setForeground(new Color(150, 150, 150));
 
         sectionLabelField = new JTextField();
-        sectionLabelField.setFont(new Font("Arial", Font.ITALIC | Font.BOLD, 14));
-        sectionLabelField.setForeground(new Color(200, 200, 200));
-        sectionLabelField.setOpaque(false); // Makes the background transparent
-        sectionLabelField.setBorder(BorderFactory.createEmptyBorder(0, 5, 0, 0)); // Removes the border
+        // Make it prominent as a structural divider
+        sectionLabelField.setFont(new Font("Arial", Font.BOLD, 18));
+        sectionLabelField.setForeground(new Color(120, 170, 220)); 
+        sectionLabelField.setOpaque(false);
+        sectionLabelField.setHorizontalAlignment(JTextField.CENTER);
+        sectionLabelField.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
         
-        // Add a document filter to prevent excessively long labels breaking the UI
         ((AbstractDocument) sectionLabelField.getDocument()).setDocumentFilter(new LengthFilter(30));
     }
 
@@ -232,24 +243,19 @@ public class SongLinePanel extends JPanel {
         this.lyricsHandler = new LyricsInputHandler(lyricsField, font);
     }
 
+
     /**
-     * Arranges the initialized components within the panel using GridBagLayout.
-     * * @param removeButton The button used to trigger the removal of this panel.
+     * Arranges the initialized components to establish a balanced, professional musical grid.
+     * Integrates the line number and drag handle to share a horizontal axis left of the tablature.
+     *
+     * @param removeButton The button used to trigger the removal of this panel.
      */
     private void layoutComponents(JButton removeButton) {
         int targetWidth = 600;
         
-        // 1. Header (Line Number & Section Label)
-        JPanel headerPanel = new JPanel();
-        headerPanel.setLayout(new BoxLayout(headerPanel, BoxLayout.X_AXIS));
-        headerPanel.setOpaque(false);
-        // Add 30px left padding so the label perfectly aligns with the chords text
-        headerPanel.setBorder(new EmptyBorder(0, 30, 0, 0)); 
-        headerPanel.setPreferredSize(new Dimension(targetWidth, 25));
-        headerPanel.setMaximumSize(new Dimension(targetWidth, 25));
-        
-        headerPanel.add(lineNumberLabel);
-        headerPanel.add(sectionLabelField);
+        // 1. Line Number Label Styling (Outside the Box)
+        lineNumberLabel.setHorizontalAlignment(JLabel.CENTER);
+        lineNumberLabel.setFont(new Font("Arial", Font.BOLD, 28)); 
 
         // 2. Component Dimensions
         Dimension chordsDim = new Dimension(targetWidth, 35);
@@ -265,39 +271,7 @@ public class SongLinePanel extends JPanel {
         lyricsField.setPreferredSize(lyricsDim);
         lyricsField.setMaximumSize(lyricsDim);
 
-        GridBagConstraints gbc = new GridBagConstraints();
-        gbc.fill = GridBagConstraints.NONE;
-        
-        // --- ROW 0: Header ---
-        gbc.gridx = 1; gbc.gridy = 0;
-        gbc.insets = new Insets(0, 0, 2, 0); 
-        gbc.anchor = GridBagConstraints.WEST;
-        this.add(headerPanel, gbc);
-
-        // --- ROW 1: Chords ---
-        gbc.gridx = 1; gbc.gridy = 1;
-        gbc.insets = new Insets(0, 0, 5, 0); 
-        gbc.anchor = GridBagConstraints.CENTER;
-        this.add(chordsField, gbc);
-
-        // --- ROW 2: Tablature & Remove Button ---
-        gbc.gridx = 1; gbc.gridy = 2; 
-        gbc.insets = new Insets(0, 0, 5, 0);
-        gbc.anchor = GridBagConstraints.CENTER; 
-        this.add(tablatureArea, gbc);
-
-        gbc.gridx = 2; gbc.gridy = 2;
-        gbc.insets = new Insets(0, 15, 5, 0); 
-        gbc.anchor = GridBagConstraints.WEST;
-        this.add(removeButton, gbc);
-
-        // --- ROW 3: Lyrics ---
-        gbc.gridx = 1; gbc.gridy = 3;
-        gbc.insets = new Insets(0, 0, 15, 0); 
-        gbc.anchor = GridBagConstraints.CENTER;
-        this.add(lyricsField, gbc);
-
-        // --- ROW 4: Drag Handle ---
+        // 3. Drag Handle Setup (Inside the Box)
         dragHandleLabel = new JLabel("≡");
         dragHandleLabel.setName("dragHandle");
         dragHandleLabel.setFont(new Font("Arial", Font.BOLD, 28));
@@ -305,11 +279,61 @@ public class SongLinePanel extends JPanel {
         dragHandleLabel.setCursor(java.awt.Cursor.getPredefinedCursor(java.awt.Cursor.HAND_CURSOR));
         dragHandleLabel.setToolTipText("Click and drag to reorder this line");
 
+        // --- Left Margin Panel (Contains ONLY the Line Number) ---
+        JPanel leftMarginPanel = new JPanel(new GridBagLayout());
+        leftMarginPanel.setOpaque(false);
+        GridBagConstraints marginGbc = new GridBagConstraints();
+        marginGbc.insets = new Insets(0, 0, 0, 15); // Gap between number and the card
+        marginGbc.anchor = GridBagConstraints.CENTER;
+        leftMarginPanel.add(lineNumberLabel, marginGbc);
+
+        // --- Inner Content Panel (The "Card") ---
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.fill = GridBagConstraints.NONE;
+        
+        // --- DRAG HANDLE (Spans all 3 rows on the left edge) ---
         gbc.gridx = 0; 
+        gbc.gridy = 0;
+        gbc.gridheight = 3;
+        gbc.insets = new Insets(0, 10, 0, 10); // Nice padding creating a grip area
+        gbc.anchor = GridBagConstraints.CENTER;
+        innerContentPanel.add(dragHandleLabel, gbc);
+
+        // --- ROW 0: Chords ---
+        gbc.gridheight = 1; // Reset height
+        gbc.gridx = 1; 
+        gbc.gridy = 0;
+        gbc.gridwidth = 2; 
+        gbc.insets = new Insets(10, 0, 5, 10); 
+        gbc.anchor = GridBagConstraints.WEST;
+        innerContentPanel.add(chordsField, gbc);
+
+        // --- ROW 1: Tablature Area ---
+        gbc.gridwidth = 1; // Reset width
+        gbc.gridx = 1;
+        gbc.gridy = 1;
+        gbc.insets = new Insets(0, 0, 5, 0);
+        innerContentPanel.add(tablatureArea, gbc);
+
+        // --- ROW 1: Remove Button ---
+        gbc.gridx = 2; 
+        gbc.gridy = 1;
+        gbc.insets = new Insets(0, 15, 5, 10);
+        gbc.anchor = GridBagConstraints.WEST;
+        innerContentPanel.add(removeButton, gbc);
+
+        // --- ROW 2: Lyrics ---
+        gbc.gridx = 1;
         gbc.gridy = 2;
-        gbc.insets = new Insets(0, 20, 5, 15);
-        gbc.anchor = GridBagConstraints.EAST;
-        this.add(dragHandleLabel, gbc);
+        gbc.gridwidth = 2;
+        gbc.insets = new Insets(0, 0, 10, 10); 
+        gbc.anchor = GridBagConstraints.WEST;
+        innerContentPanel.add(lyricsField, gbc);
+
+        // Assemble the outer panel
+        this.add(sectionLabelField, java.awt.BorderLayout.NORTH);
+        this.add(leftMarginPanel, java.awt.BorderLayout.WEST); 
+        this.add(innerContentPanel, java.awt.BorderLayout.CENTER); 
     }
 
     /**
@@ -366,15 +390,14 @@ public class SongLinePanel extends JPanel {
      * Determines if any child component holds focus and applies the corresponding border.
      */
     private void updatePanelBorder() {
-        if (isPlaceholderActive) return; // Yield to drag-and-drop dashed borders
+        if (isPlaceholderActive) return;
 
         java.awt.Component focusOwner = java.awt.KeyboardFocusManager.getCurrentKeyboardFocusManager().getFocusOwner();
-        
-        // Check if whatever currently holds focus is a child of this specific panel
         boolean hasFocus = SwingUtilities.isDescendingFrom(focusOwner, this);
         
-        setBorder(hasFocus ? focusedBorder : defaultBorder);
-        repaint();
+        // Apply focus border to the inner container
+        innerContentPanel.setBorder(hasFocus ? focusedBorder : defaultBorder);
+        innerContentPanel.repaint();
     }
 
     /**
@@ -386,21 +409,24 @@ public class SongLinePanel extends JPanel {
             normalSize = getSize();
             setPreferredSize(normalSize);
             setMinimumSize(normalSize);
-            // Hide all children EXCEPT the drag handle so it keeps catching mouse events
-            for (Component c : getComponents()) {
+            
+            // Hide elements in the inner panel
+            for (Component c : innerContentPanel.getComponents()) {
                 if (c != dragHandleLabel) {
                     c.setVisible(false);
                 }
             }
-            setBorder(BorderFactory.createDashedBorder(new Color(100, 130, 200), 3, 5, 2, false));
+            sectionLabelField.setVisible(false); // Hide the external label too
+            innerContentPanel.setBorder(BorderFactory.createDashedBorder(new Color(100, 130, 200), 3, 5, 2, false));
         } else {
-            // Restore normal view
-            for (Component c : getComponents()) {
+            for (Component c : innerContentPanel.getComponents()) {
                 c.setVisible(true);
             }
+            sectionLabelField.setVisible(true);
+            
             setPreferredSize(null);
             setMinimumSize(null);
-            setBorder(defaultBorder);
+            innerContentPanel.setBorder(defaultBorder);
         }
         revalidate();
         repaint();
