@@ -43,7 +43,13 @@ public class SongLinePanel extends JPanel {
     private final SongLine songLine;
     protected boolean isProgrammaticUpdate = false;
     private Consumer<SongLinePanel> onRemoveCallback;
+    private Consumer<SongLinePanel> onCopyCallback;
+    private Consumer<SongLinePanel> onPasteBelowCallback;
+    private Consumer<SongLinePanel> onDuplicateCallback;
+    private javax.swing.JPopupMenu contextMenu;
+    private Consumer<SongLinePanel> onFocusCallback;
     private ChordsInputHandler chordsHandler;
+    private boolean isForceHighlighted = false;
     private TablatureInputHandler tablatureHandler;
     private LyricsInputHandler lyricsHandler;
     private Dimension normalSize = null;
@@ -123,9 +129,12 @@ public class SongLinePanel extends JPanel {
         // --- Setup Panel Focus Tracking ---
         setupFocusTracking();
 
+        // --- Setup Panel Focus Tracking ---
+        setupFocusTracking();
 
+        // --- Initialize Context Menu ---
+        initContextMenu();
 
-        
         /** * Inject the custom Java2D icon. 
          * Using a modern alert red (e.g., #DC3545) for the flat aesthetic.
          */
@@ -299,6 +308,92 @@ public class SongLinePanel extends JPanel {
         this.lyricsHandler = new LyricsInputHandler(lyricsField, font);
     }
 
+    /**
+     * Initializes the context menu with standard line editing operations.
+     * Hooks into mouse events to display the menu on right-click.
+     */
+    private void initContextMenu() {
+        contextMenu = new javax.swing.JPopupMenu();
+
+        javax.swing.JMenuItem copyItem = new javax.swing.JMenuItem("Copy Line");
+        copyItem.addActionListener(e -> {
+            if (onCopyCallback != null) onCopyCallback.accept(this);
+        });
+
+        javax.swing.JMenuItem pasteBelowItem = new javax.swing.JMenuItem("Paste Line Below");
+        pasteBelowItem.addActionListener(e -> {
+            if (onPasteBelowCallback != null) onPasteBelowCallback.accept(this);
+        });
+
+        javax.swing.JMenuItem duplicateItem = new javax.swing.JMenuItem("Duplicate Line");
+        duplicateItem.addActionListener(e -> {
+            if (onDuplicateCallback != null) onDuplicateCallback.accept(this);
+        });
+
+        javax.swing.JMenuItem clearItem = new javax.swing.JMenuItem("Clear Contents");
+        clearItem.addActionListener(e -> clearContents());
+
+        javax.swing.JMenuItem deleteItem = new javax.swing.JMenuItem("Delete Line");
+        deleteItem.addActionListener(e -> {
+            if (onRemoveCallback != null) onRemoveCallback.accept(this);
+        });
+
+        contextMenu.add(copyItem);
+        contextMenu.add(pasteBelowItem);
+        contextMenu.add(duplicateItem);
+        contextMenu.addSeparator();
+        contextMenu.add(clearItem);
+        contextMenu.addSeparator();
+        contextMenu.add(deleteItem);
+
+        // Mouse adapter to detect right-clicks (popup triggers) across platforms
+        java.awt.event.MouseAdapter popupListener = new java.awt.event.MouseAdapter() {
+            @Override
+            public void mousePressed(java.awt.event.MouseEvent e) { showPopup(e); }
+            @Override
+            public void mouseReleased(java.awt.event.MouseEvent e) { showPopup(e); }
+
+            private void showPopup(java.awt.event.MouseEvent e) {
+                if (e.isPopupTrigger()) {
+                    contextMenu.show(e.getComponent(), e.getX(), e.getY());
+                }
+            }
+        };
+
+        // Attach the listener to the panel and its primary interactive container
+        this.addMouseListener(popupListener);
+        innerContentPanel.addMouseListener(popupListener);
+    }
+
+    /**
+     * Resets the textual content of the panel to an empty, formatted state.
+     * Useful for clearing out a duplicated section to write new parts.
+     */
+    public void clearContents() {
+        chordsField.setText(" ".repeat(47));
+        lyricsField.setText("");
+        tablatureArea.setText(new model.Tablature().toString());
+        sectionLabelField.setText("");
+        updateSongLine();
+    }
+
+    /**
+     * Forces the panel to maintain its highlighted focus border even if 
+     * the OS transfers keyboard focus to a menu or popup.
+     */
+    public void setForceHighlight(boolean force) {
+        this.isForceHighlighted = force;
+        updatePanelBorder();
+    }
+
+    public void setOnCopyCallback(Consumer<SongLinePanel> callback) { 
+        this.onCopyCallback = callback; 
+    }
+    
+    public void setOnPasteBelowCallback(Consumer<SongLinePanel> callback) { 
+        this.onPasteBelowCallback = callback; 
+    }
+
 
     /**
      * Arranges the initialized components to establish a balanced, professional musical grid.
@@ -445,6 +540,7 @@ public class SongLinePanel extends JPanel {
         java.awt.event.FocusAdapter focusAdapter = new java.awt.event.FocusAdapter() {
             @Override
             public void focusGained(java.awt.event.FocusEvent e) {
+                if (onFocusCallback != null) onFocusCallback.accept(SongLinePanel.this);
                 updatePanelBorder();
             }
             @Override
@@ -467,9 +563,11 @@ public class SongLinePanel extends JPanel {
      */
     private void updatePanelBorder() {
         if (isPlaceholderActive) return;
-
         java.awt.Component focusOwner = java.awt.KeyboardFocusManager.getCurrentKeyboardFocusManager().getFocusOwner();
-        boolean hasFocus = SwingUtilities.isDescendingFrom(focusOwner, this);
+        
+        // The border activates if the GUI has explicitly marked this panel as active,
+        // OR if the user is actively typing in one of its fields.
+        boolean hasFocus = isForceHighlighted || ((focusOwner != null) && SwingUtilities.isDescendingFrom(focusOwner, this));
         
         // Apply focus border to the inner container
         innerContentPanel.setBorder(hasFocus ? focusedBorder : defaultBorder);
@@ -518,6 +616,14 @@ public class SongLinePanel extends JPanel {
      */
     public void setOnRemoveCallback(Consumer<SongLinePanel> callback) {
         this.onRemoveCallback = callback;
+    }
+
+    public void setOnDuplicateCallback(Consumer<SongLinePanel> callback) { 
+        this.onDuplicateCallback = callback; 
+    }
+
+    public void setOnFocusCallback(Consumer<SongLinePanel> callback) { 
+        this.onFocusCallback = callback; 
     }
 
     /**

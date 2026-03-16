@@ -46,6 +46,8 @@ public class SongBuilderGUI {
     private Runnable saveSongAsAction = () -> {};
     private Runnable loadSongAction = () -> {};
     private Consumer<Integer> removeLineCallback = (index) -> {};
+    private SongLine clipboardLine = null;
+    private SongLinePanel lastFocusedPanel = null;
 
     /**
      * Initializes the GUI components and creates the initial empty song state.
@@ -85,6 +87,7 @@ public class SongBuilderGUI {
     public void setRemoveLineCallback(Consumer<Integer> callback) { 
         this.removeLineCallback = callback;
     }
+
 
     // --- UI Setup ---
 
@@ -154,38 +157,50 @@ public class SongBuilderGUI {
             saveSongAction,
             saveSongAsAction,
             loadSongAction,
-            this::addLineAction
+            this::addLineAction,
+            // Wrap the specific panel operations so they resolve the active panel at click-time
+            () -> { SongLinePanel p = getTargetPanel(); if (p != null) copyLinePanel(p); },
+            () -> { SongLinePanel p = getTargetPanel(); if (p != null) pasteLineBelowPanel(p); },
+            () -> { SongLinePanel p = getTargetPanel(); if (p != null) duplicateLinePanel(p); },
+            () -> { SongLinePanel p = getTargetPanel(); if (p != null) p.clearContents(); },
+            () -> { SongLinePanel p = getTargetPanel(); if (p != null) removeLinePanel(p); }
         );
         frame.setJMenuBar(menuBar);
     }
 
     // --- Dynamic UI Methods ---
 
-    /**
+/**
      * Appends a new, blank SongLinePanel to the end of the composition and scrolls to it.
      */
     public void addLineAction() {
         SongLinePanel newPanel = new SongLinePanel();
-        
-        // Assign the current line number based on the array size
         newPanel.setLineNumber(songLinePanels.size() + 1);
+        
+        // Link all context menu and button callbacks here
         newPanel.setOnRemoveCallback(this::removeLinePanel);
+        newPanel.setOnCopyCallback(this::copyLinePanel);
+        newPanel.setOnPasteBelowCallback(this::pasteLineBelowPanel);
+        newPanel.setOnDuplicateCallback(this::duplicateLinePanel);
+        newPanel.setOnFocusCallback(this::setActivePanel);
         
         if (!songLinePanels.isEmpty()) {
             songLinePanelContainer.add(Box.createVerticalStrut(20));
         }
 
+        // Attach drag and drop listeners
         newPanel.getDragHandle().addMouseListener(dragDropHandler);
         newPanel.getDragHandle().addMouseMotionListener(dragDropHandler);
         
+        // CRITICAL: These are the lines that actually put the panel on the screen
         songLinePanels.add(newPanel);
         songLinePanelContainer.add(newPanel);
-
+        
         SwingUtilities.invokeLater(() -> {
             JScrollBar vertical = scrollPane.getVerticalScrollBar();
             vertical.setValue(vertical.getMaximum());
         });
-
+        
         frame.revalidate();
         frame.repaint();
     }
@@ -196,6 +211,10 @@ public class SongBuilderGUI {
      * @param panelToRemove The specific panel instance requested for deletion.
      */
     private void removeLinePanel(SongLinePanel panelToRemove) {
+        if (this.lastFocusedPanel == panelToRemove) {
+            setActivePanel(null);
+        }
+        
         int index = songLinePanels.indexOf(panelToRemove);
 
         if (index != -1) {
@@ -230,7 +249,6 @@ public class SongBuilderGUI {
         songLinePanelContainer.removeAll();
         
         headerPanel.setSongName(song.getName());
-
         if (!song.getSongLines().isEmpty()) {
             SongLine firstLine = song.getSongLines().get(0);
             for (int i = 0; i < 6; i++) {
@@ -243,27 +261,34 @@ public class SongBuilderGUI {
             SongLine songLine = song.getSongLines().get(i);
             SongLinePanel newPanel = new SongLinePanel();
             
-            newPanel.setLineNumber(i + 1); // Set the line number during data load
+            newPanel.setLineNumber(i + 1); 
             
             newPanel.getChordsField().setText(songLine.getChords());
             newPanel.getLyricsField().setText(songLine.getLyrics());
             newPanel.getTablatureArea().setText(songLine.getTablature().toString());
             
-            // Populate the new section label safely
             if (songLine.getSectionLabel() != null) {
                 newPanel.getSectionLabelField().setText(songLine.getSectionLabel());
             }
             
             newPanel.updateSongLine();
+            
+            // Link all context menu and button callbacks here
             newPanel.setOnRemoveCallback(this::removeLinePanel);
+            newPanel.setOnCopyCallback(this::copyLinePanel);
+            newPanel.setOnPasteBelowCallback(this::pasteLineBelowPanel);
+            newPanel.setOnDuplicateCallback(this::duplicateLinePanel);
+            newPanel.setOnFocusCallback(this::setActivePanel);
 
             if (i > 0) {
                 songLinePanelContainer.add(Box.createVerticalStrut(20));
             }
 
+            // Attach drag and drop listeners
             newPanel.getDragHandle().addMouseListener(dragDropHandler);
             newPanel.getDragHandle().addMouseMotionListener(dragDropHandler);
             
+            // CRITICAL: Put the panel on the screen
             songLinePanelContainer.add(newPanel);
             songLinePanels.add(newPanel);
         }
@@ -282,6 +307,77 @@ public class SongBuilderGUI {
         }
     }
 
+/**
+     * Deep copies the content of the selected panel into the internal clipboard.
+     *
+     * @param panel The source panel being copied.
+     */
+    private void copyLinePanel(SongLinePanel panel) {
+        panel.updateSongLine();
+        SongLine source = panel.getSongLine();
+        
+        // Deep copy the state using the toString/parse trick for Tablature to avoid reference mutations
+        this.clipboardLine = new SongLine(
+            source.getChords(), 
+            source.getLyrics(), 
+            model.Tablature.parseTablature(source.getTablature().toString())
+        );
+        this.clipboardLine.setSectionLabel(source.getSectionLabel());
+        
+        System.out.println("Copied line to clipboard!");
+    }
+
+    /**
+     * Injects a newly constructed panel containing the clipboard data directly below the target panel.
+     *
+     * @param targetPanel The panel that triggered the paste action.
+     */
+    private void pasteLineBelowPanel(SongLinePanel targetPanel) {
+        if (this.clipboardLine == null) {
+            System.out.println("Cannot paste: Clipboard is empty.");
+            return; 
+        }
+        
+        int targetIndex = songLinePanels.indexOf(targetPanel);
+        if (targetIndex == -1) return;
+
+        SongLinePanel newPanel = new SongLinePanel();
+        
+        // Populate the new panel with clipboard data
+        newPanel.getChordsField().setText(this.clipboardLine.getChords());
+        newPanel.getLyricsField().setText(this.clipboardLine.getLyrics());
+        newPanel.getTablatureArea().setText(this.clipboardLine.getTablature().toString());
+        newPanel.getSectionLabelField().setText(this.clipboardLine.getSectionLabel() != null ? this.clipboardLine.getSectionLabel() : "");
+        newPanel.updateSongLine();
+
+        // Attach callbacks to the cloned panel so the new panel can also be copied/pasted
+        newPanel.setOnRemoveCallback(this::removeLinePanel);
+        newPanel.setOnCopyCallback(this::copyLinePanel);
+        newPanel.setOnPasteBelowCallback(this::pasteLineBelowPanel);
+        newPanel.setOnDuplicateCallback(this::duplicateLinePanel);
+        newPanel.setOnFocusCallback(this::setActivePanel);
+        newPanel.getDragHandle().addMouseListener(dragDropHandler);
+        newPanel.getDragHandle().addMouseMotionListener(dragDropHandler);
+
+        // Insert into the underlying list
+        songLinePanels.add(targetIndex + 1, newPanel);
+        
+        // Rebuild the container to visually insert the panel in the correct vertical slot
+        songLinePanelContainer.removeAll();
+        for (int i = 0; i < songLinePanels.size(); i++) {
+            songLinePanels.get(i).setLineNumber(i + 1);
+            if (i > 0) {
+                songLinePanelContainer.add(Box.createVerticalStrut(20));
+            }
+            songLinePanelContainer.add(songLinePanels.get(i));
+        }
+        
+        frame.revalidate();
+        frame.repaint();
+        
+        System.out.println("Pasted line successfully at index " + (targetIndex + 1));
+    }
+
     /**
      * Attaches mouse listeners to background containers to steal component focus 
      * when the user clicks on an empty area of the application.
@@ -298,6 +394,8 @@ public class SongBuilderGUI {
                 // This guarantees the active focusOwner is NO LONGER a descendant 
                 // of the SongLinePanel, allowing updatePanelBorder() to evaluate to false.
                 songLinePanelContainer.requestFocusInWindow();
+
+                setActivePanel(null);
             }
         };
 
@@ -329,6 +427,36 @@ public class SongBuilderGUI {
         
         addLineAction();
     }
+
+    /**
+     * Sets the globally active panel, managing the sticky highlight state 
+     * so panels don't lose their blue border when menus are opened.
+     */
+    private void setActivePanel(SongLinePanel panel) {
+        if (this.lastFocusedPanel != null && this.lastFocusedPanel != panel) {
+            this.lastFocusedPanel.setForceHighlight(false); // Turn off old highlight
+        }
+        
+        this.lastFocusedPanel = panel;
+        
+        if (this.lastFocusedPanel != null) {
+            this.lastFocusedPanel.setForceHighlight(true); // Turn on new highlight
+        }
+    }
+
+    /**
+     * Resolves the target panel for global menu actions.
+     * Defaults to the currently focused panel, or the last panel in the composition if none are focused.
+     */
+    private SongLinePanel getTargetPanel() {
+        if (lastFocusedPanel != null && songLinePanels.contains(lastFocusedPanel)) {
+            return lastFocusedPanel;
+        }
+        if (!songLinePanels.isEmpty()) {
+            return songLinePanels.get(songLinePanels.size() - 1);
+        }
+        return null;
+    }
     
     /**
      * Callback triggered when a user changes a tuning in the TuningPanel.
@@ -342,6 +470,17 @@ public class SongBuilderGUI {
         for (SongLinePanel panel : songLinePanels) {
             panel.updateTuningVisually(stringIndex, newTuning);
         }
+    }
+
+    /**
+     * Duplicates the target panel directly below it by firing a copy and paste sequentially.
+     * * @param targetPanel The panel to duplicate.
+     */
+    private void duplicateLinePanel(SongLinePanel targetPanel) {
+        // We can reuse the exact logic we just built!
+        copyLinePanel(targetPanel);
+        pasteLineBelowPanel(targetPanel);
+        System.out.println("Line duplicated successfully.");
     }
 
     // --- State Exposure Getters for Controller ---
