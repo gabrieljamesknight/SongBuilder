@@ -120,20 +120,20 @@ public class SongBuilderGUI {
         // Ensure the scroll pane viewport matches the container's deep background
         scrollPane = new JScrollPane(songLinePanelContainer);
         scrollPane.getViewport().setBackground(new java.awt.Color(25, 27, 30));
-
-        scrollPane = new JScrollPane(songLinePanelContainer);
         scrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_ALWAYS);    
         frame.add(scrollPane, BorderLayout.CENTER);
         scrollPane.getVerticalScrollBar().setUnitIncrement(15);
-
+        
         // Initialize the drag-and-drop handler
         dragDropHandler = new PanelDragDropHandler(
             songLinePanelContainer, 
             songLinePanels, 
             this::updateAllLineNumbers
         );
-
         updateMenuBar();
+
+        // Attach global focus clearing for improved UX
+        setupGlobalFocusClearing();
 
         // Add Initial Panel
         addLineAction();
@@ -280,6 +280,37 @@ public class SongBuilderGUI {
         for (int i = 0; i < songLinePanels.size(); i++) {
             songLinePanels.get(i).setLineNumber(i + 1);
         }
+    }
+
+    /**
+     * Attaches mouse listeners to background containers to steal component focus 
+     * when the user clicks on an empty area of the application.
+     */
+    private void setupGlobalFocusClearing() {
+        // 1. Make the background container capable of receiving focus 
+        // (JPanels are not focusable by default)
+        songLinePanelContainer.setFocusable(true);
+        
+        java.awt.event.MouseAdapter clearFocusAdapter = new java.awt.event.MouseAdapter() {
+            @Override
+            public void mousePressed(java.awt.event.MouseEvent e) {
+                // 2. Explicitly transfer focus to the background container.
+                // This guarantees the active focusOwner is NO LONGER a descendant 
+                // of the SongLinePanel, allowing updatePanelBorder() to evaluate to false.
+                songLinePanelContainer.requestFocusInWindow();
+            }
+        };
+
+        // Attach to the main frame and background containers
+        frame.addMouseListener(clearFocusAdapter);
+        songLinePanelContainer.addMouseListener(clearFocusAdapter);
+        
+        // The viewport is the actual background of the scrollable area
+        scrollPane.getViewport().addMouseListener(clearFocusAdapter);
+        
+        // Also attach to the header panel and tuning panel
+        headerPanel.addMouseListener(clearFocusAdapter);
+        tuningPanel.addMouseListener(clearFocusAdapter);
     }
 
     /**
