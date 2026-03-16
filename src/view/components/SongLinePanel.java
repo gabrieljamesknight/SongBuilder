@@ -150,7 +150,42 @@ public class SongLinePanel extends JPanel {
             }
         };
         tablatureArea.setFont(new Font("Monospaced", Font.PLAIN, 12));
-        tablatureArea.setBorder(new EmptyBorder(5, 5, 5, 5));
+        
+        /**
+         * Dynamically fetch FlatLaf's active theme colors for consistency.
+         */
+        java.awt.Color borderColor = javax.swing.UIManager.getColor("Component.borderColor");
+        java.awt.Color focusColor = javax.swing.UIManager.getColor("Component.focusColor");
+        
+        /**
+         * Create responsive borders. The total inset (padding + border thickness) 
+         * is kept strictly at 5px in both states to prevent the tablature from shifting 
+         * when the component gains focus.
+         */
+        javax.swing.border.Border unfocusedBorder = javax.swing.BorderFactory.createCompoundBorder(
+            javax.swing.BorderFactory.createLineBorder(borderColor != null ? borderColor : java.awt.Color.GRAY, 1, true),
+            new javax.swing.border.EmptyBorder(4, 4, 4, 4)
+        );
+        
+        javax.swing.border.Border focusedBorder = javax.swing.BorderFactory.createCompoundBorder(
+            javax.swing.BorderFactory.createLineBorder(focusColor != null ? focusColor : java.awt.Color.BLUE, 2, true),
+            new javax.swing.border.EmptyBorder(3, 3, 3, 3)
+        );
+
+        tablatureArea.setBorder(unfocusedBorder);
+
+        // Attach listener to toggle the focus ring dynamically
+        tablatureArea.addFocusListener(new java.awt.event.FocusAdapter() {
+            @Override
+            public void focusGained(java.awt.event.FocusEvent e) {
+                tablatureArea.setBorder(focusedBorder);
+            }
+
+            @Override
+            public void focusLost(java.awt.event.FocusEvent e) {
+                tablatureArea.setBorder(unfocusedBorder);
+            }
+        });
         
         tablatureArea.getInputMap().put(KeyStroke.getKeyStroke(KeyEvent.VK_SPACE, 0), DefaultEditorKit.forwardAction);
         tablatureArea.getInputMap().put(KeyStroke.getKeyStroke(' '), DefaultEditorKit.forwardAction);

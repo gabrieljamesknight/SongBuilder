@@ -36,11 +36,19 @@ public class LyricsInputHandler {
     private void configureField(Font font) {
         lyricsField.setFont(font);
         
-        // Apply length constraint to prevent UI stretching
+        /**
+         * Restricts the document length to maintain grid integrity.
+         */
         LengthFilter lyricLengthFilter = new LengthFilter(MAX_LYRIC_LENGTH);
         ((AbstractDocument) lyricsField.getDocument()).setDocumentFilter(lyricLengthFilter);
         
-        // Apply padding to align text with the start of the tablature grid
-        lyricsField.setBorder(new EmptyBorder(0, LEFT_PADDING, 0, 0));
+        /**
+         * Applies the native UI border for focus highlighting, compounded with 
+         * left padding to ensure the text vertically aligns with the tablature grid.
+         */
+        lyricsField.setBorder(javax.swing.BorderFactory.createCompoundBorder(
+            javax.swing.UIManager.getBorder("TextField.border"),
+            new EmptyBorder(0, LEFT_PADDING, 0, 0)
+        ));
     }
 }
