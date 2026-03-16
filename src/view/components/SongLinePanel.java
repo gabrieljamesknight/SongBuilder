@@ -11,7 +11,6 @@ import java.awt.event.KeyEvent;
 import java.util.function.Consumer;
 
 import javax.swing.BorderFactory;
-import javax.swing.BoxLayout;
 import javax.swing.JButton;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
@@ -42,21 +41,17 @@ public class SongLinePanel extends JPanel {
     private JTextArea tablatureArea;
     private final SongLine songLine;
     protected boolean isProgrammaticUpdate = false;
+    private FocusAwareBorderPanel innerContentPanel;
     private Consumer<SongLinePanel> onRemoveCallback;
     private Consumer<SongLinePanel> onCopyCallback;
     private Consumer<SongLinePanel> onPasteBelowCallback;
     private Consumer<SongLinePanel> onDuplicateCallback;
-    private javax.swing.JPopupMenu contextMenu;
     private Consumer<SongLinePanel> onFocusCallback;
     private ChordsInputHandler chordsHandler;
-    private boolean isForceHighlighted = false;
     private TablatureInputHandler tablatureHandler;
     private LyricsInputHandler lyricsHandler;
     private Dimension normalSize = null;
-    private final javax.swing.border.Border defaultBorder;
-    private final javax.swing.border.Border focusedBorder;
-    private boolean isPlaceholderActive = false;
-    private JPanel innerContentPanel;
+    private boolean isPlaceholderActive = false;    
     Dimension iconBox = new Dimension(40, 40);
     
 
@@ -75,65 +70,28 @@ public class SongLinePanel extends JPanel {
         this.setMaximumSize(new Dimension(850, 280)); 
 
         // Initialize the inner panel that will hold the actual song data and receive the border
-        this.innerContentPanel = new JPanel(new GridBagLayout());
+        this.innerContentPanel = new FocusAwareBorderPanel(createDefaultBorder(), createFocusedBorder());
+        this.innerContentPanel.setLayout(new GridBagLayout());
         this.innerContentPanel.setBackground(new java.awt.Color(45, 48, 52));
         this.innerContentPanel.setOpaque(false);
+
+        this.innerContentPanel.setOnFocusGainedAction(() -> {
+            if (onFocusCallback != null) {
+                onFocusCallback.accept(this);
+            }
+        });
 
         this.setBackground(new java.awt.Color(45, 48, 52));
         this.setOpaque(false);
 
-        this.defaultBorder = new javax.swing.border.EmptyBorder(10, 10, 10, 10) {
-            @Override
-            public void paintBorder(java.awt.Component c, java.awt.Graphics g, int x, int y, int width, int height) {
-                java.awt.Graphics2D g2d = (java.awt.Graphics2D) g.create();
-                // Enable high-quality rendering for smooth, modern corners
-                g2d.setRenderingHint(java.awt.RenderingHints.KEY_ANTIALIASING, java.awt.RenderingHints.VALUE_ANTIALIAS_ON);
-                g2d.setRenderingHint(java.awt.RenderingHints.KEY_STROKE_CONTROL, java.awt.RenderingHints.VALUE_STROKE_PURE);
-                
-                g2d.setColor(new java.awt.Color(70, 75, 80));
-                g2d.drawRoundRect(x, y, width - 1, height - 1, 16, 16);
-                g2d.dispose();
-            }
-        };
-        
-        /**
-         * The active border drawn when any child component has focus.
-         * Fetches the theme's native focus color and paints a thicker 2px stroke.
-         */
-        this.focusedBorder = new javax.swing.border.EmptyBorder(10, 10, 10, 10) {
-            @Override
-            public void paintBorder(java.awt.Component c, java.awt.Graphics g, int x, int y, int width, int height) {
-                java.awt.Graphics2D g2d = (java.awt.Graphics2D) g.create();
-                g2d.setRenderingHint(java.awt.RenderingHints.KEY_ANTIALIASING, java.awt.RenderingHints.VALUE_ANTIALIAS_ON);
-                g2d.setRenderingHint(java.awt.RenderingHints.KEY_STROKE_CONTROL, java.awt.RenderingHints.VALUE_STROKE_PURE);
-                
-                java.awt.Color focusColor = javax.swing.UIManager.getColor("Component.focusColor");
-                g2d.setColor(focusColor != null ? focusColor : new java.awt.Color(62, 134, 224));
-                g2d.setStroke(new java.awt.BasicStroke(2.0f));
-                
-                // Offset by 1px to account for the stroke width and prevent clipping
-                g2d.drawRoundRect(x + 1, y + 1, width - 3, height - 3, 16, 16);
-                g2d.dispose();
-            }
-        };
-
-        this.innerContentPanel.setBorder(defaultBorder);
 
         // --- Initialize Modular Fields ---
         initHeaderComponents();
         initChordsField();
         initTablatureArea();
         initLyricsField(lyricsFont);
-        setupFocusTracking();
-        
-        // --- Setup Panel Focus Tracking ---
-        setupFocusTracking();
 
-        // --- Setup Panel Focus Tracking ---
-        setupFocusTracking();
-
-        // --- Initialize Context Menu ---
-        initContextMenu();
+        this.innerContentPanel.attachFocusTracking(this.innerContentPanel);
 
         /** * Inject the custom Java2D icon. 
          * Using a modern alert red (e.g., #DC3545) for the flat aesthetic.
@@ -161,7 +119,10 @@ public class SongLinePanel extends JPanel {
                 this.onRemoveCallback.accept(this);
             }
         });
+        initContextMenu();
         layoutComponents(removeButton);
+
+        this.innerContentPanel.attachFocusTracking(this.innerContentPanel);
     }
 
     private void initHeaderComponents() {
@@ -296,6 +257,8 @@ public class SongLinePanel extends JPanel {
         tablatureArea.setText(emptyTablature.toString());
 
         this.tablatureHandler = new TablatureInputHandler(tablatureArea);
+
+        this.innerContentPanel.attachFocusTracking(this.innerContentPanel);
     }
 
     /**
@@ -307,46 +270,11 @@ public class SongLinePanel extends JPanel {
         lyricsField = new JTextField();
         this.lyricsHandler = new LyricsInputHandler(lyricsField, font);
     }
-
-    /**
-     * Initializes the context menu with standard line editing operations.
-     * Hooks into mouse events to display the menu on right-click.
-     */
+    
     private void initContextMenu() {
-        contextMenu = new javax.swing.JPopupMenu();
+        // We only pass 'this' and the local clear function now
+        SongLineContextMenu menu = new SongLineContextMenu(this, this::clearContents);
 
-        javax.swing.JMenuItem copyItem = new javax.swing.JMenuItem("Copy Line");
-        copyItem.addActionListener(e -> {
-            if (onCopyCallback != null) onCopyCallback.accept(this);
-        });
-
-        javax.swing.JMenuItem pasteBelowItem = new javax.swing.JMenuItem("Paste Line Below");
-        pasteBelowItem.addActionListener(e -> {
-            if (onPasteBelowCallback != null) onPasteBelowCallback.accept(this);
-        });
-
-        javax.swing.JMenuItem duplicateItem = new javax.swing.JMenuItem("Duplicate Line");
-        duplicateItem.addActionListener(e -> {
-            if (onDuplicateCallback != null) onDuplicateCallback.accept(this);
-        });
-
-        javax.swing.JMenuItem clearItem = new javax.swing.JMenuItem("Clear Contents");
-        clearItem.addActionListener(e -> clearContents());
-
-        javax.swing.JMenuItem deleteItem = new javax.swing.JMenuItem("Delete Line");
-        deleteItem.addActionListener(e -> {
-            if (onRemoveCallback != null) onRemoveCallback.accept(this);
-        });
-
-        contextMenu.add(copyItem);
-        contextMenu.add(pasteBelowItem);
-        contextMenu.add(duplicateItem);
-        contextMenu.addSeparator();
-        contextMenu.add(clearItem);
-        contextMenu.addSeparator();
-        contextMenu.add(deleteItem);
-
-        // Mouse adapter to detect right-clicks (popup triggers) across platforms
         java.awt.event.MouseAdapter popupListener = new java.awt.event.MouseAdapter() {
             @Override
             public void mousePressed(java.awt.event.MouseEvent e) { showPopup(e); }
@@ -355,14 +283,17 @@ public class SongLinePanel extends JPanel {
 
             private void showPopup(java.awt.event.MouseEvent e) {
                 if (e.isPopupTrigger()) {
-                    contextMenu.show(e.getComponent(), e.getX(), e.getY());
+                    menu.show(e.getComponent(), e.getX(), e.getY());
                 }
             }
-        };
+    };
 
-        // Attach the listener to the panel and its primary interactive container
-        this.addMouseListener(popupListener);
-        innerContentPanel.addMouseListener(popupListener);
+    this.addMouseListener(popupListener);
+    innerContentPanel.addMouseListener(popupListener);
+}
+
+    public void setForceHighlight(boolean force) {
+        this.innerContentPanel.setForceHighlight(force);
     }
 
     /**
@@ -377,14 +308,6 @@ public class SongLinePanel extends JPanel {
         updateSongLine();
     }
 
-    /**
-     * Forces the panel to maintain its highlighted focus border even if 
-     * the OS transfers keyboard focus to a menu or popup.
-     */
-    public void setForceHighlight(boolean force) {
-        this.isForceHighlighted = force;
-        updatePanelBorder();
-    }
 
     public void setOnCopyCallback(Consumer<SongLinePanel> callback) { 
         this.onCopyCallback = callback; 
@@ -533,64 +456,24 @@ public class SongLinePanel extends JPanel {
         }
     }
 
-    /**
-     * Attaches a unified focus listener to all interactive child components.
-     */
-    private void setupFocusTracking() {
-        java.awt.event.FocusAdapter focusAdapter = new java.awt.event.FocusAdapter() {
-            @Override
-            public void focusGained(java.awt.event.FocusEvent e) {
-                if (onFocusCallback != null) onFocusCallback.accept(SongLinePanel.this);
-                updatePanelBorder();
-            }
-            @Override
-            public void focusLost(java.awt.event.FocusEvent e) {
-                // invokeLater gives the FocusManager a millisecond to assign the next 
-                // focus owner so we don't accidentally drop the highlight when tabbing 
-                // between fields in the SAME panel.
-                SwingUtilities.invokeLater(() -> updatePanelBorder());
-            }
-        };
-
-        chordsField.addFocusListener(focusAdapter);
-        lyricsField.addFocusListener(focusAdapter);
-        tablatureArea.addFocusListener(focusAdapter);
-        sectionLabelField.addFocusListener(focusAdapter);
-    }
-
-    /**
-     * Determines if any child component holds focus and applies the corresponding border.
-     */
-    private void updatePanelBorder() {
-        if (isPlaceholderActive) return;
-        java.awt.Component focusOwner = java.awt.KeyboardFocusManager.getCurrentKeyboardFocusManager().getFocusOwner();
-        
-        // The border activates if the GUI has explicitly marked this panel as active,
-        // OR if the user is actively typing in one of its fields.
-        boolean hasFocus = isForceHighlighted || ((focusOwner != null) && SwingUtilities.isDescendingFrom(focusOwner, this));
-        
-        // Apply focus border to the inner container
-        innerContentPanel.setBorder(hasFocus ? focusedBorder : defaultBorder);
-        innerContentPanel.repaint();
-    }
 
     /**
      * Converts this panel into a visual drop-zone placeholder during a drag event.
      * This keeps the component in the window hierarchy so mouse focus is never lost.
      */
     public void setPlaceholderMode(boolean active) {
+        this.isPlaceholderActive = active; // Clears the hint!
         if (active) {
             normalSize = getSize();
             setPreferredSize(normalSize);
             setMinimumSize(normalSize);
             
-            // Hide elements in the inner panel
             for (Component c : innerContentPanel.getComponents()) {
                 if (c != dragHandleLabel) {
                     c.setVisible(false);
                 }
             }
-            sectionLabelField.setVisible(false); // Hide the external label too
+            sectionLabelField.setVisible(false);
             innerContentPanel.setBorder(BorderFactory.createDashedBorder(new Color(100, 130, 200), 3, 5, 2, false));
         } else {
             for (Component c : innerContentPanel.getComponents()) {
@@ -600,7 +483,9 @@ public class SongLinePanel extends JPanel {
             
             setPreferredSize(null);
             setMinimumSize(null);
-            innerContentPanel.setBorder(defaultBorder);
+            
+            // Tell the border panel to resume normal focus tracking
+            innerContentPanel.setPlaceholderMode(false); 
         }
         revalidate();
         repaint();
@@ -609,6 +494,34 @@ public class SongLinePanel extends JPanel {
     public void setLineNumber(int number) {
         lineNumberLabel.setText(String.valueOf(number) + ". ");
     }
+
+    private javax.swing.border.Border createDefaultBorder() {
+    return new javax.swing.border.EmptyBorder(10, 10, 10, 10) {
+        @Override
+        public void paintBorder(java.awt.Component c, java.awt.Graphics g, int x, int y, int width, int height) {
+            java.awt.Graphics2D g2d = (java.awt.Graphics2D) g.create();
+            g2d.setRenderingHint(java.awt.RenderingHints.KEY_ANTIALIASING, java.awt.RenderingHints.VALUE_ANTIALIAS_ON);
+            g2d.setColor(new java.awt.Color(70, 75, 80));
+            g2d.drawRoundRect(x, y, width - 1, height - 1, 16, 16);
+            g2d.dispose();
+        }
+    };
+}
+
+    private javax.swing.border.Border createFocusedBorder() {
+    return new javax.swing.border.EmptyBorder(10, 10, 10, 10) {
+        @Override
+        public void paintBorder(java.awt.Component c, java.awt.Graphics g, int x, int y, int width, int height) {
+            java.awt.Graphics2D g2d = (java.awt.Graphics2D) g.create();
+            g2d.setRenderingHint(java.awt.RenderingHints.KEY_ANTIALIASING, java.awt.RenderingHints.VALUE_ANTIALIAS_ON);
+            java.awt.Color focusColor = javax.swing.UIManager.getColor("Component.focusColor");
+            g2d.setColor(focusColor != null ? focusColor : new java.awt.Color(62, 134, 224));
+            g2d.setStroke(new java.awt.BasicStroke(2.0f));
+            g2d.drawRoundRect(x + 1, y + 1, width - 3, height - 3, 16, 16);
+            g2d.dispose();
+        }
+    };
+}
 
     /**
      * Sets the callback to be executed when the remove button is clicked.
@@ -651,4 +564,9 @@ public class SongLinePanel extends JPanel {
     public ChordsInputHandler getChordsHandler() { return chordsHandler; }
     public TablatureInputHandler getTablatureHandler() { return tablatureHandler; }
     public LyricsInputHandler getLyricsHandler() { return lyricsHandler; }
+
+    public Consumer<SongLinePanel> getOnCopyCallback() { return onCopyCallback; }
+    public Consumer<SongLinePanel> getOnPasteBelowCallback() { return onPasteBelowCallback; }
+    public Consumer<SongLinePanel> getOnDuplicateCallback() { return onDuplicateCallback; }
+    public Consumer<SongLinePanel> getOnRemoveCallback() { return onRemoveCallback; }
 }
