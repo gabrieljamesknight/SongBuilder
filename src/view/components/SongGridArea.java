@@ -76,7 +76,6 @@ public class SongGridArea extends JPanel {
 
     public void addLineAction() {
         SongLinePanel newPanel = new SongLinePanel();
-        newPanel.setLineNumber(songLinePanels.size() + 1);
         newPanel.setActionObserver(panelActionObserver);
 
         if (!songLinePanels.isEmpty()) {
@@ -118,7 +117,6 @@ public class SongGridArea extends JPanel {
             SongLine songLine = song.getSongLines().get(i);
             SongLinePanel newPanel = new SongLinePanel();
             
-            newPanel.setLineNumber(i + 1); 
             newPanel.getChordsField().setText(songLine.getChords());
             newPanel.getLyricsField().setText(songLine.getLyrics());
             newPanel.getTablatureArea().setText(songLine.getTablature().toString());
@@ -158,14 +156,12 @@ public class SongGridArea extends JPanel {
 
     private void updateAllLineNumbers() {
         for (int i = 0; i < songLinePanels.size(); i++) {
-            songLinePanels.get(i).setLineNumber(i + 1);
         }
     }
 
     private void rebuildContainer() {
         songLinePanelContainer.removeAll();
         for (int i = 0; i < songLinePanels.size(); i++) {
-            songLinePanels.get(i).setLineNumber(i + 1); 
             if (i > 0) {
                 songLinePanelContainer.add(Box.createVerticalStrut(20));
             }

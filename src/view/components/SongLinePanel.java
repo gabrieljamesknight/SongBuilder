@@ -30,7 +30,6 @@ import view.listeners.TablatureInputHandler;
  */
 public class SongLinePanel extends JPanel {
     private JTextField chordsField, lyricsField, sectionLabelField;
-    private JLabel lineNumberLabel;
     private JLabel dragHandleLabel;
     private TablatureTextArea tablatureArea;
     private final SongLine songLine;
@@ -94,10 +93,6 @@ public class SongLinePanel extends JPanel {
     }
 
     private void initHeaderComponents() {
-        lineNumberLabel = new JLabel("# ");
-        lineNumberLabel.setFont(new Font("Arial", Font.BOLD, 18));
-        lineNumberLabel.setForeground(new Color(150, 150, 150));
-
         sectionLabelField = new JTextField();
         // Make it prominent as a structural divider
         sectionLabelField.setFont(new Font("Arial", Font.BOLD, 18));
@@ -194,10 +189,6 @@ public class SongLinePanel extends JPanel {
     private void layoutComponents(JButton removeButton) {
         int targetWidth = 600;
 
-        // 1. Line Number Label Styling (Outside the Box)
-        lineNumberLabel.setHorizontalAlignment(JLabel.CENTER);
-        lineNumberLabel.setFont(new Font("Arial", Font.BOLD, 28)); 
-
         // 2. Component Dimensions
         Dimension chordsDim = new Dimension(targetWidth, 35);
         Dimension tabDim    = new Dimension(targetWidth, 100);
@@ -222,9 +213,8 @@ public class SongLinePanel extends JPanel {
         GridBagConstraints marginGbc = new GridBagConstraints();
         marginGbc.insets = new Insets(4, 0, 0, 15);
         marginGbc.anchor = GridBagConstraints.CENTER;
-        leftMarginPanel.add(lineNumberLabel, marginGbc);
         
-        // COLUMN 0: Drag Handle
+        // COLUMN 0: Line Number andDrag Handle
         innerContentPanel.add(dragHandleLabel, GridBagHelper.createConstraints(0, 1, 1.0, new Insets(0, 0, 5, 10), GridBagConstraints.CENTER));
         
         // COLUMN 1: Chords, Tablature, and Lyrics (weightx = 0.0 to maintain preferred width)
@@ -237,7 +227,6 @@ public class SongLinePanel extends JPanel {
         
         // Assemble the outer panel
         this.add(sectionLabelField, java.awt.BorderLayout.NORTH);
-        this.add(leftMarginPanel, java.awt.BorderLayout.WEST); 
         this.add(innerContentPanel, java.awt.BorderLayout.CENTER);
     }
 
@@ -259,11 +248,7 @@ public class SongLinePanel extends JPanel {
             dragVisualizer.setPlaceholderMode(active);
         }
     }
-
-    public void setLineNumber(int number) {
-        lineNumberLabel.setText(String.valueOf(number) + ". ");
-    }
-
+    
     /**
      * Sets the global observer for user actions performed on this panel.
      * * @param observer The implementation handling the action events.
