@@ -3,12 +3,14 @@ Problems:
   to the amount of space the line number takes up on the left.
 - Condense SongBuilderGUI and SongLinePanel classes.
 - Change the 'cut, copy, paste' options in the drop down menu to have 'text' after them in the label.
+- Duplicated lines shouldn't duplicate the section header.
 
 (Definite) Improvements:
 - Add more modern look to songline presentation.
     - Make buttons coloured and without an old fashioned border and icon.
     - Change to more modern fonts.
     - Make colour scheme more modern (especially for top bar).
+    - Line number should be smaller and in top left of SongLinePanel.
 - Split up fullscreen GUI into two sections:
     - Left Sidebar (Song Navigator): A dynamic index of user-defined song sections (Intro, Verse, Chorus) that can be clicked through.
     - Right Sidebar (Song Metadata & Scratchpad): A dedicated area for global song settings like Capo position, Tempo (BPM), Time Signature, maybe rough lyric and strumming pattern ideas too.

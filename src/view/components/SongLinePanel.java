@@ -48,8 +48,7 @@ public class SongLinePanel extends JPanel {
     private TablatureInputHandler tablatureHandler;
     private LyricsInputHandler lyricsHandler;
     private Dimension normalSize = null;
-    private boolean isPlaceholderActive = false;    
-    Dimension iconBox = new Dimension(40, 40);
+    private boolean isPlaceholderActive = false;
     
 
     /**
@@ -67,7 +66,7 @@ public class SongLinePanel extends JPanel {
         this.setMaximumSize(new Dimension(850, 280)); 
 
         // Initialize the inner panel that will hold the actual song data and receive the border
-        this.innerContentPanel = new FocusAwareBorderPanel(createDefaultBorder(), createFocusedBorder());
+        this.innerContentPanel = new FocusAwareBorderPanel(SongLineComponentFactory.createDefaultBorder(), SongLineComponentFactory.createFocusedBorder());
         this.innerContentPanel.setLayout(new GridBagLayout());
         this.innerContentPanel.setBackground(new java.awt.Color(45, 48, 52));
         this.innerContentPanel.setOpaque(false);
@@ -90,28 +89,7 @@ public class SongLinePanel extends JPanel {
 
         this.innerContentPanel.attachFocusTracking(this.innerContentPanel);
 
-        /** * Inject the custom Java2D icon. 
-         * Using a modern alert red (e.g., #DC3545) for the flat aesthetic.
-         */
-        HoverButton removeButton = new HoverButton();
-        removeButton.setIcon(new TrashIcon(30, 35, new java.awt.Color(180, 40, 55)));
-        removeButton.setToolTipText("Remove this line");
-        removeButton.setFocusable(false); 
-        
-        // Strip out the default Swing button background/border to keep it flat
-        removeButton.setContentAreaFilled(false);
-        removeButton.setBorderPainted(false);
-        removeButton.setCursor(java.awt.Cursor.getPredefinedCursor(java.awt.Cursor.HAND_CURSOR));
-        removeButton.setMargin(new java.awt.Insets(0, 0, 0, 0));
-        removeButton.setBorder(javax.swing.BorderFactory.createEmptyBorder());
-        removeButton.putClientProperty("JComponent.minimumWidth", 0);
-        removeButton.setPreferredSize(new Dimension(40, 40));
-
-        removeButton.setPreferredSize(iconBox);
-        removeButton.setMinimumSize(iconBox);
-        removeButton.setMaximumSize(iconBox);
-        
-        removeButton.addActionListener(e -> {
+        HoverButton removeButton = SongLineComponentFactory.createRemoveButton(() -> {
             if (this.actionObserver != null) {
                 this.actionObserver.onRemove(this);
             }
@@ -223,10 +201,6 @@ public class SongLinePanel extends JPanel {
      */
     private void layoutComponents(JButton removeButton) {
         int targetWidth = 600;
-        
-        // Strip hidden default margins from the JButton to prevent visual offset
-        removeButton.setMargin(new Insets(0, 0, 0, 0));
-        removeButton.setBorder(BorderFactory.createEmptyBorder());
 
         // 1. Line Number Label Styling (Outside the Box)
         lineNumberLabel.setHorizontalAlignment(JLabel.CENTER);
@@ -247,15 +221,7 @@ public class SongLinePanel extends JPanel {
         lyricsField.setMaximumSize(lyricsDim);
 
         // 3. Drag Handle Setup (Inside the Box)
-        dragHandleLabel = new JLabel();
-        dragHandleLabel.setName("dragHandle");
-        dragHandleLabel.setIcon(new DragHandleIcon(30, 35, new Color(100, 100, 100)));
-        dragHandleLabel.setCursor(java.awt.Cursor.getPredefinedCursor(java.awt.Cursor.HAND_CURSOR));
-        dragHandleLabel.setToolTipText("Click and drag to reorder this line");
-        dragHandleLabel.setPreferredSize(iconBox);
-        dragHandleLabel.setHorizontalAlignment(JLabel.CENTER);
-        dragHandleLabel.setMinimumSize(iconBox);
-        dragHandleLabel.setMaximumSize(iconBox);
+        dragHandleLabel = SongLineComponentFactory.createDragHandle();
         
         
         // --- Left Margin Panel (Contains ONLY the Line Number) ---
@@ -347,34 +313,6 @@ public class SongLinePanel extends JPanel {
     public void setLineNumber(int number) {
         lineNumberLabel.setText(String.valueOf(number) + ". ");
     }
-
-    private javax.swing.border.Border createDefaultBorder() {
-    return new javax.swing.border.EmptyBorder(10, 10, 10, 10) {
-        @Override
-        public void paintBorder(java.awt.Component c, java.awt.Graphics g, int x, int y, int width, int height) {
-            java.awt.Graphics2D g2d = (java.awt.Graphics2D) g.create();
-            g2d.setRenderingHint(java.awt.RenderingHints.KEY_ANTIALIASING, java.awt.RenderingHints.VALUE_ANTIALIAS_ON);
-            g2d.setColor(new java.awt.Color(70, 75, 80));
-            g2d.drawRoundRect(x, y, width - 1, height - 1, 16, 16);
-            g2d.dispose();
-        }
-    };
-}
-
-    private javax.swing.border.Border createFocusedBorder() {
-    return new javax.swing.border.EmptyBorder(10, 10, 10, 10) {
-        @Override
-        public void paintBorder(java.awt.Component c, java.awt.Graphics g, int x, int y, int width, int height) {
-            java.awt.Graphics2D g2d = (java.awt.Graphics2D) g.create();
-            g2d.setRenderingHint(java.awt.RenderingHints.KEY_ANTIALIASING, java.awt.RenderingHints.VALUE_ANTIALIAS_ON);
-            java.awt.Color focusColor = javax.swing.UIManager.getColor("Component.focusColor");
-            g2d.setColor(focusColor != null ? focusColor : new java.awt.Color(62, 134, 224));
-            g2d.setStroke(new java.awt.BasicStroke(2.0f));
-            g2d.drawRoundRect(x + 1, y + 1, width - 3, height - 3, 16, 16);
-            g2d.dispose();
-        }
-    };
-}
 
     /**
      * Sets the global observer for user actions performed on this panel.
