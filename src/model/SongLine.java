@@ -12,7 +12,7 @@ public class SongLine implements Serializable {
         this.chords = chords;
         this.lyrics = lyrics;
         this.tablature = tablature;
-        this.sectionLabel = sectionLabel;
+        this.sectionLabel = "";
     }
 
     public SongLine() {

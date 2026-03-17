@@ -1,14 +1,11 @@
 package view.components;
 
 import java.awt.Color;
-import java.awt.Component;
 import java.awt.Dimension;
 import java.awt.Font;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
-import java.awt.event.KeyEvent;
-import java.util.function.Consumer;
 import controller.SongLineMapper;
 import javax.swing.BorderFactory;
 import javax.swing.JButton;
@@ -16,12 +13,8 @@ import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JTextArea;
 import javax.swing.JTextField;
-import javax.swing.KeyStroke;
-import javax.swing.SwingUtilities;
 import javax.swing.border.EmptyBorder;
 import javax.swing.text.AbstractDocument;
-import javax.swing.text.DefaultEditorKit;
-
 import model.SongLine;
 import model.Tablature;
 import view.listeners.ChordsInputHandler;
