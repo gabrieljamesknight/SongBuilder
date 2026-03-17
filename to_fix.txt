@@ -1,7 +1,6 @@
 Problems:
 - The application should launch with a window size that provides an equal amount of space on the right side of the panel
   to the amount of space the line number takes up on the left.
-- Condense SongBuilderGUI and SongLinePanel classes.
 - Change the 'cut, copy, paste' options in the drop down menu to have 'text' after them in the label.
 - Duplicated lines shouldn't duplicate the section header.
 - Lyrics field needs shortening.

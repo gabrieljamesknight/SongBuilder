@@ -276,10 +276,11 @@ public class SongLinePanel extends JPanel {
     public JLabel getDragHandle() { return dragHandleLabel; }
     public JTextField getSectionLabelField() { return sectionLabelField; }
     public SongLine getSongLine() { return songLine; }
+
     public String getChords() { return chordsField.getText(); }
     public String getLyrics() { return lyricsField.getText(); }
     public Tablature getTablature() { return Tablature.parseTablature(tablatureArea.getText()); }
-    
+
     public JTextField getChordsField() { return chordsField; }
     public JTextField getLyricsField() { return lyricsField; }
     public JTextArea getTablatureArea() { return tablatureArea; }
@@ -287,8 +288,6 @@ public class SongLinePanel extends JPanel {
     public ChordsInputHandler getChordsHandler() { return chordsHandler; }
     public TablatureInputHandler getTablatureHandler() { return tablatureHandler; }
     public LyricsInputHandler getLyricsHandler() { return lyricsHandler; }
-
-    public view.listeners.SongLineActionObserver getActionObserver() { 
-        return actionObserver; 
-    }
+    
+    public view.listeners.SongLineActionObserver getActionObserver() { return actionObserver;}
 }
