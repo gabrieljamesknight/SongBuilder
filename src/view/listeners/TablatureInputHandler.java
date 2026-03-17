@@ -156,6 +156,26 @@ public class TablatureInputHandler {
             @Override public void changedUpdate(DocumentEvent e) {}
         });
     }
+
+    /**
+     * Visually updates the tuning of a specific string in the tablature area 
+     * safely bypassing the document listeners.
+     */
+    public void updateTuningVisually(int stringIndex, String newTuning) {
+        String formattedTuning = String.format("%-2s", newTuning);
+        String currentText = tablatureArea.getText();
+        String[] lines = currentText.split("\n");
+        
+        if (stringIndex >= 0 && stringIndex < lines.length) {
+            if (lines[stringIndex].length() >= 2) {
+                lines[stringIndex] = formattedTuning + lines[stringIndex].substring(2);
+                
+                performSafeUpdate(() -> {
+                    tablatureArea.setText(String.join("\n", lines));
+                });
+            }
+        }
+    }
     
     /**
      * Exposes programmatic updates for external classes (like applying global tuning).
