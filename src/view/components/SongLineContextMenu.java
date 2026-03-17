@@ -1,7 +1,5 @@
 package view.components;
 
-import java.util.function.Consumer;
-
 import javax.swing.JMenuItem;
 import javax.swing.JPopupMenu;
 
@@ -53,5 +51,29 @@ public class SongLineContextMenu extends JPopupMenu {
         this.add(clearItem);
         this.addSeparator();
         this.add(deleteItem);
+    }
+
+    /**
+     * Attaches this context menu to the specified components via a MouseAdapter.
+     *
+     * @param components The UI components that should trigger this context menu on right-click.
+     */
+    public void attachTo(java.awt.Component... components) {
+        java.awt.event.MouseAdapter popupListener = new java.awt.event.MouseAdapter() {
+            @Override
+            public void mousePressed(java.awt.event.MouseEvent e) { showPopup(e); }
+            @Override
+            public void mouseReleased(java.awt.event.MouseEvent e) { showPopup(e); }
+
+            private void showPopup(java.awt.event.MouseEvent e) {
+                if (e.isPopupTrigger()) {
+                    show(e.getComponent(), e.getX(), e.getY());
+                }
+            }
+        };
+
+        for (java.awt.Component c : components) {
+            c.addMouseListener(popupListener);
+        }
     }
 }

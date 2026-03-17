@@ -9,7 +9,7 @@ import java.awt.GridBagLayout;
 import java.awt.Insets;
 import java.awt.event.KeyEvent;
 import java.util.function.Consumer;
-
+import controller.SongLineMapper;
 import javax.swing.BorderFactory;
 import javax.swing.JButton;
 import javax.swing.JLabel;
@@ -180,39 +180,37 @@ public class SongLinePanel extends JPanel {
     }
     
     private void initContextMenu() {
-        // We only pass 'this' and the local clear function now
         SongLineContextMenu menu = new SongLineContextMenu(this, this::clearContents);
-
-        java.awt.event.MouseAdapter popupListener = new java.awt.event.MouseAdapter() {
-            @Override
-            public void mousePressed(java.awt.event.MouseEvent e) { showPopup(e); }
-            @Override
-            public void mouseReleased(java.awt.event.MouseEvent e) { showPopup(e); }
-
-            private void showPopup(java.awt.event.MouseEvent e) {
-                if (e.isPopupTrigger()) {
-                    menu.show(e.getComponent(), e.getX(), e.getY());
-                }
-            }
-    };
-
-    this.addMouseListener(popupListener);
-    innerContentPanel.addMouseListener(popupListener);
-}
+        menu.attachTo(this, innerContentPanel);
+    }
 
     public void setForceHighlight(boolean force) {
         this.innerContentPanel.setForceHighlight(force);
     }
 
     /**
+     * Commits the current UI field values into the underlying SongLine model object.
+     */
+    public void updateSongLine() {
+        SongLineMapper.updateModelFromUI(
+            this.songLine, 
+            this.chordsField, 
+            this.lyricsField, 
+            this.tablatureArea, 
+            this.sectionLabelField
+        );
+    }
+
+    /**
      * Resets the textual content of the panel to an empty, formatted state.
-     * Useful for clearing out a duplicated section to write new parts.
      */
     public void clearContents() {
-        chordsField.setText(" ".repeat(47));
-        lyricsField.setText("");
-        tablatureArea.setText(new model.Tablature().toString());
-        sectionLabelField.setText("");
+        SongLineMapper.clearUIContents(
+            this.chordsField, 
+            this.lyricsField, 
+            this.tablatureArea, 
+            this.sectionLabelField
+        );
         updateSongLine();
     }
 
@@ -268,60 +266,16 @@ public class SongLinePanel extends JPanel {
         marginGbc.anchor = GridBagConstraints.CENTER;
         leftMarginPanel.add(lineNumberLabel, marginGbc);
         
-        // --- Inner Content Panel (The "Card") ---
-        GridBagConstraints gbc = new GridBagConstraints();
-        gbc.fill = GridBagConstraints.NONE;
+        // COLUMN 0: Drag Handle
+        innerContentPanel.add(dragHandleLabel, GridBagHelper.createConstraints(0, 1, 1.0, new Insets(0, 0, 5, 10), GridBagConstraints.CENTER));
         
-        // --- COLUMN 0: DRAG HANDLE ---
-        gbc.gridx = 0;
-        gbc.gridy = 1;
-        gbc.gridwidth = 1;
-        gbc.gridheight = 1;
-        // Allocate 100% of the available empty space on the left to this column
-        gbc.weightx = 1.0;
-        // Counterbalance the 10px EmptyBorder on the outside by adding 10px to the right
-        gbc.insets = new Insets(0, 0, 5, 10);
-        gbc.anchor = GridBagConstraints.CENTER;
-        innerContentPanel.add(dragHandleLabel, gbc);
+        // COLUMN 1: Chords, Tablature, and Lyrics (weightx = 0.0 to maintain preferred width)
+        innerContentPanel.add(chordsField, GridBagHelper.createConstraints(1, 0, 0.0, new Insets(10, 0, 5, 0), GridBagConstraints.WEST));
+        innerContentPanel.add(tablatureArea, GridBagHelper.createConstraints(1, 1, 0.0, new Insets(5, 0, 5, 0), GridBagConstraints.WEST));
+        innerContentPanel.add(lyricsField, GridBagHelper.createConstraints(1, 2, 0.0, new Insets(5, 0, 10, 0), GridBagConstraints.WEST));
         
-        // --- CENTER COLUMN ELEMENTS ---
-        // Reset weightx to 0 so the center column only takes up exactly its preferred width (600px)
-        gbc.weightx = 0.0;
-        
-        // --- COLUMN 1, ROW 0: Chords ---
-        gbc.gridx = 1;
-        gbc.gridy = 0;
-        gbc.gridwidth = 1; 
-        /**
-         * Add a 5px bottom inset to push the tablature down slightly.
-         */
-        gbc.insets = new Insets(10, 0, 5, 0); 
-        gbc.anchor = GridBagConstraints.WEST;
-        innerContentPanel.add(chordsField, gbc);
-
-        // --- COLUMN 1, ROW 1: Tablature Area ---
-        gbc.gridx = 1;
-        gbc.gridy = 1;
-        gbc.gridwidth = 1;
-        gbc.insets = new Insets(5, 0, 5, 0);
-        innerContentPanel.add(tablatureArea, gbc);
-
-        // --- COLUMN 1, ROW 2: Lyrics ---
-        gbc.gridx = 1;
-        gbc.gridy = 2;
-        gbc.gridwidth = 1; 
-        gbc.insets = new Insets(5, 0, 10, 0); 
-        gbc.anchor = GridBagConstraints.WEST;
-        innerContentPanel.add(lyricsField, gbc);
-        
-        // --- COLUMN 2: REMOVE BUTTON ---
-        gbc.gridx = 2;
-        gbc.gridy = 1;
-        gbc.gridwidth = 1;
-        gbc.weightx = 1.0;
-        gbc.insets = new Insets(0, 8, 7, 0); 
-        gbc.anchor = GridBagConstraints.CENTER;
-        innerContentPanel.add(removeButton, gbc);
+        // COLUMN 2: Remove Button
+        innerContentPanel.add(removeButton, GridBagHelper.createConstraints(2, 1, 1.0, new Insets(0, 8, 7, 0), GridBagConstraints.CENTER));
         
         // Assemble the outer panel
         this.add(sectionLabelField, java.awt.BorderLayout.NORTH);
@@ -428,16 +382,6 @@ public class SongLinePanel extends JPanel {
      */
     public void setActionObserver(view.listeners.SongLineActionObserver observer) {
         this.actionObserver = observer;
-    }
-
-    /**
-     * Commits the current UI field values into the underlying SongLine model object.
-     */
-    public void updateSongLine() {
-        songLine.setChords(getChords());
-        songLine.setLyrics(getLyrics());
-        songLine.setTablature(getTablature());
-        songLine.setSectionLabel(sectionLabelField.getText().trim());
     }
 
 
