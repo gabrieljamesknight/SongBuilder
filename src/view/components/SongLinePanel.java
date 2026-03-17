@@ -41,14 +41,12 @@ public class SongLinePanel extends JPanel {
     private JLabel dragHandleLabel;
     private TablatureTextArea tablatureArea;
     private final SongLine songLine;
-    protected boolean isProgrammaticUpdate = false;
     private FocusAwareBorderPanel innerContentPanel;
     private SongLineActionObserver actionObserver;
     private ChordsInputHandler chordsHandler;
     private TablatureInputHandler tablatureHandler;
     private LyricsInputHandler lyricsHandler;
-    private Dimension normalSize = null;
-    private boolean isPlaceholderActive = false;
+    private SongLineDragVisualizer dragVisualizer;
     
 
     /**
@@ -99,6 +97,7 @@ public class SongLinePanel extends JPanel {
         layoutComponents(removeButton);
 
         this.innerContentPanel.attachFocusTracking(this.innerContentPanel);
+        this.dragVisualizer = new SongLineDragVisualizer(this, innerContentPanel, dragHandleLabel, sectionLabelField);
     }
 
     private void initHeaderComponents() {
@@ -250,64 +249,22 @@ public class SongLinePanel extends JPanel {
     }
 
     /**
-     * Visually updates the tuning of a specific string in the tablature area without 
-     * triggering document listener loops.
-     * * @param stringIndex The 0-based index of the guitar string.
-     * @param newTuning   The new tuning character(s) to apply.
+     * Delegates the visual tuning update to the tablature handler to safely bypass listeners.
      */
     public void updateTuningVisually(int stringIndex, String newTuning) {
-        String formattedTuning = String.format("%-2s", newTuning);
-        String currentText = tablatureArea.getText();
-        String[] lines = currentText.split("\n");
-        
-        if (stringIndex >= 0 && stringIndex < lines.length) {
-            if (lines[stringIndex].length() >= 2) {
-                lines[stringIndex] = formattedTuning + lines[stringIndex].substring(2);
-                SwingUtilities.invokeLater(() -> {
-                    isProgrammaticUpdate = true;
-                    try {
-                        tablatureArea.setText(String.join("\n", lines));
-                    } finally {
-                        isProgrammaticUpdate = false;
-                    }
-                });
-            }
+        if (tablatureHandler != null) {
+            tablatureHandler.updateTuningVisually(stringIndex, newTuning);
         }
     }
 
 
     /**
      * Converts this panel into a visual drop-zone placeholder during a drag event.
-     * This keeps the component in the window hierarchy so mouse focus is never lost.
      */
     public void setPlaceholderMode(boolean active) {
-        this.isPlaceholderActive = active; // Clears the hint!
-        if (active) {
-            normalSize = getSize();
-            setPreferredSize(normalSize);
-            setMinimumSize(normalSize);
-            
-            for (Component c : innerContentPanel.getComponents()) {
-                if (c != dragHandleLabel) {
-                    c.setVisible(false);
-                }
-            }
-            sectionLabelField.setVisible(false);
-            innerContentPanel.setBorder(BorderFactory.createDashedBorder(new Color(100, 130, 200), 3, 5, 2, false));
-        } else {
-            for (Component c : innerContentPanel.getComponents()) {
-                c.setVisible(true);
-            }
-            sectionLabelField.setVisible(true);
-            
-            setPreferredSize(null);
-            setMinimumSize(null);
-            
-            // Tell the border panel to resume normal focus tracking
-            innerContentPanel.setPlaceholderMode(false); 
+        if (dragVisualizer != null) {
+            dragVisualizer.setPlaceholderMode(active);
         }
-        revalidate();
-        repaint();
     }
 
     public void setLineNumber(int number) {

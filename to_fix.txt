@@ -4,6 +4,7 @@ Problems:
 - Condense SongBuilderGUI and SongLinePanel classes.
 - Change the 'cut, copy, paste' options in the drop down menu to have 'text' after them in the label.
 - Duplicated lines shouldn't duplicate the section header.
+- Lyrics field needs shortening.
 
 (Definite) Improvements:
 - Add more modern look to songline presentation.
