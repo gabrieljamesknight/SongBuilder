@@ -52,8 +52,10 @@ public class SongLinePanel extends JPanel {
         this.songLine = new SongLine();
         Font lyricsFont = new Font("Monospaced", Font.PLAIN, 16);
 
-        // Slightly taller to accommodate the external section label
-        this.setMaximumSize(new Dimension(850, 280)); 
+        Dimension fixedDimension = new Dimension(850, 280);
+        this.setMinimumSize(fixedDimension);
+        this.setPreferredSize(fixedDimension);
+        this.setMaximumSize(fixedDimension);
 
         // Initialize the inner panel that will hold the actual song data and receive the border
         this.innerContentPanel = new FocusAwareBorderPanel(SongLineComponentFactory.createDefaultBorder(), SongLineComponentFactory.createFocusedBorder());
@@ -248,7 +250,7 @@ public class SongLinePanel extends JPanel {
             dragVisualizer.setPlaceholderMode(active);
         }
     }
-    
+
     /**
      * Sets the global observer for user actions performed on this panel.
      * * @param observer The implementation handling the action events.

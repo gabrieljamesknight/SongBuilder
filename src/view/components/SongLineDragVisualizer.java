@@ -48,8 +48,9 @@ public class SongLineDragVisualizer {
             }
             sectionLabelField.setVisible(true);
             
-            panel.setPreferredSize(null);
-            panel.setMinimumSize(null);
+            Dimension fixedDimension = new Dimension(850, 280);
+            panel.setPreferredSize(fixedDimension);
+            panel.setMinimumSize(fixedDimension);
             innerContentPanel.setPlaceholderMode(false);
         }
         panel.revalidate();

@@ -68,7 +68,7 @@ public class SongBuilderGUI {
     private void setupUI() {
         frame = new JFrame("SongBuilder");
         frame.setLayout(new BoxLayout(frame.getContentPane(), BoxLayout.Y_AXIS));
-        frame.setPreferredSize(new Dimension(800, 700));
+        frame.setPreferredSize(new Dimension(920, 800));
 
         headerPanel = new SongHeaderPanel(
             () -> gridArea.addLineAction(), 
@@ -92,6 +92,7 @@ public class SongBuilderGUI {
         gridArea.addLineAction();
 
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        frame.setExtendedState(JFrame.MAXIMIZED_BOTH);
         frame.pack();
         frame.setVisible(true);
         frame.setResizable(true);

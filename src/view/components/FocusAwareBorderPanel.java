@@ -32,6 +32,15 @@ public class FocusAwareBorderPanel extends JPanel {
         this.defaultBorder = defaultBorder;
         this.focusedBorder = focusedBorder;
         this.setBorder(defaultBorder);
+        
+        // Make the panel focusable to intercept clicks on empty space
+        this.setFocusable(true);
+        this.addMouseListener(new java.awt.event.MouseAdapter() {
+            @Override
+            public void mousePressed(java.awt.event.MouseEvent e) {
+                requestFocusInWindow();
+            }
+        });
     }
 
     /**
@@ -59,18 +68,20 @@ public class FocusAwareBorderPanel extends JPanel {
      * Call this after adding interactive elements.
      */
     public void attachFocusTracking(Container container) {
-        FocusAdapter tracker = new FocusAdapter() {
+        java.awt.event.FocusAdapter tracker = new java.awt.event.FocusAdapter() {
             @Override
-            public void focusGained(FocusEvent e) {
+            public void focusGained(java.awt.event.FocusEvent e) {
                 if (onFocusGainedAction != null) onFocusGainedAction.run();
                 updateBorderState();
             }
             @Override
-            public void focusLost(FocusEvent e) {
-                SwingUtilities.invokeLater(() -> updateBorderState());
+            public void focusLost(java.awt.event.FocusEvent e) {
+                javax.swing.SwingUtilities.invokeLater(() -> updateBorderState());
             }
         };
 
+        // Ensure the root container itself is also tracked for focus events
+        container.addFocusListener(tracker);
         attachToTree(container, tracker);
     }
 
