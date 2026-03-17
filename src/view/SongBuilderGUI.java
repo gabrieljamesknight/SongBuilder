@@ -5,7 +5,7 @@ import java.awt.Dimension;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
-
+import view.listeners.SongLineActionObserver;
 import javax.swing.Box;
 import javax.swing.BoxLayout;
 import javax.swing.JFrame;
@@ -39,8 +39,6 @@ public class SongBuilderGUI {
     private JScrollPane scrollPane;
     private JPanel songLinePanelContainer;
     private PanelDragDropHandler dragDropHandler;
-
-    // Action Callbacks (injected by the Controller)
     private Runnable newSongAction = () -> {};
     private Runnable saveSongAction = () -> {};
     private Runnable saveSongAsAction = () -> {};
@@ -48,6 +46,18 @@ public class SongBuilderGUI {
     private Consumer<Integer> removeLineCallback = (index) -> {};
     private SongLine clipboardLine = null;
     private SongLinePanel lastFocusedPanel = null;
+    private final SongLineActionObserver panelActionObserver = new SongLineActionObserver() {
+        @Override
+        public void onRemove(SongLinePanel panel) { removeLinePanel(panel); }
+        @Override
+        public void onCopy(SongLinePanel panel) { copyLinePanel(panel); }
+        @Override
+        public void onPasteBelow(SongLinePanel panel) { pasteLineBelowPanel(panel); }
+        @Override
+        public void onDuplicate(SongLinePanel panel) { duplicateLinePanel(panel); }
+        @Override
+        public void onFocus(SongLinePanel panel) { setActivePanel(panel); }
+    };
 
     /**
      * Initializes the GUI components and creates the initial empty song state.
@@ -178,11 +188,7 @@ public class SongBuilderGUI {
         newPanel.setLineNumber(songLinePanels.size() + 1);
         
         // Link all context menu and button callbacks here
-        newPanel.setOnRemoveCallback(this::removeLinePanel);
-        newPanel.setOnCopyCallback(this::copyLinePanel);
-        newPanel.setOnPasteBelowCallback(this::pasteLineBelowPanel);
-        newPanel.setOnDuplicateCallback(this::duplicateLinePanel);
-        newPanel.setOnFocusCallback(this::setActivePanel);
+        newPanel.setActionObserver(panelActionObserver);
         
         if (!songLinePanels.isEmpty()) {
             songLinePanelContainer.add(Box.createVerticalStrut(20));
@@ -274,11 +280,7 @@ public class SongBuilderGUI {
             newPanel.updateSongLine();
             
             // Link all context menu and button callbacks here
-            newPanel.setOnRemoveCallback(this::removeLinePanel);
-            newPanel.setOnCopyCallback(this::copyLinePanel);
-            newPanel.setOnPasteBelowCallback(this::pasteLineBelowPanel);
-            newPanel.setOnDuplicateCallback(this::duplicateLinePanel);
-            newPanel.setOnFocusCallback(this::setActivePanel);
+            newPanel.setActionObserver(panelActionObserver);
 
             if (i > 0) {
                 songLinePanelContainer.add(Box.createVerticalStrut(20));
@@ -351,11 +353,7 @@ public class SongBuilderGUI {
         newPanel.updateSongLine();
 
         // Attach callbacks to the cloned panel so the new panel can also be copied/pasted
-        newPanel.setOnRemoveCallback(this::removeLinePanel);
-        newPanel.setOnCopyCallback(this::copyLinePanel);
-        newPanel.setOnPasteBelowCallback(this::pasteLineBelowPanel);
-        newPanel.setOnDuplicateCallback(this::duplicateLinePanel);
-        newPanel.setOnFocusCallback(this::setActivePanel);
+        newPanel.setActionObserver(panelActionObserver);
         newPanel.getDragHandle().addMouseListener(dragDropHandler);
         newPanel.getDragHandle().addMouseMotionListener(dragDropHandler);
 

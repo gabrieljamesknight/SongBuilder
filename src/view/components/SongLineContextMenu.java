@@ -15,20 +15,23 @@ public class SongLineContextMenu extends JPopupMenu {
 
         JMenuItem copyItem = new JMenuItem("Copy Line");
         copyItem.addActionListener(e -> {
-            Consumer<SongLinePanel> callback = targetPanel.getOnCopyCallback();
-            if (callback != null) callback.accept(targetPanel);
+            if (targetPanel.getActionObserver() != null) {
+                targetPanel.getActionObserver().onCopy(targetPanel);
+            }
         });
 
         JMenuItem pasteBelowItem = new JMenuItem("Paste Line Below");
         pasteBelowItem.addActionListener(e -> {
-            Consumer<SongLinePanel> callback = targetPanel.getOnPasteBelowCallback();
-            if (callback != null) callback.accept(targetPanel);
+            if (targetPanel.getActionObserver() != null) {
+                targetPanel.getActionObserver().onPasteBelow(targetPanel);
+            }
         });
 
         JMenuItem duplicateItem = new JMenuItem("Duplicate Line");
         duplicateItem.addActionListener(e -> {
-            Consumer<SongLinePanel> callback = targetPanel.getOnDuplicateCallback();
-            if (callback != null) callback.accept(targetPanel);
+            if (targetPanel.getActionObserver() != null) {
+                targetPanel.getActionObserver().onDuplicate(targetPanel);
+            }
         });
 
         JMenuItem clearItem = new JMenuItem("Clear Contents");
@@ -38,8 +41,9 @@ public class SongLineContextMenu extends JPopupMenu {
 
         JMenuItem deleteItem = new JMenuItem("Delete Line");
         deleteItem.addActionListener(e -> {
-            Consumer<SongLinePanel> callback = targetPanel.getOnRemoveCallback();
-            if (callback != null) callback.accept(targetPanel);
+            if (targetPanel.getActionObserver() != null) {
+                targetPanel.getActionObserver().onRemove(targetPanel);
+            }
         });
 
         this.add(copyItem);

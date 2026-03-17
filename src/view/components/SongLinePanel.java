@@ -26,6 +26,7 @@ import model.SongLine;
 import model.Tablature;
 import view.listeners.ChordsInputHandler;
 import view.listeners.LyricsInputHandler;
+import view.listeners.SongLineActionObserver;
 import view.listeners.TablatureInputHandler;
 
 /**
@@ -38,15 +39,11 @@ public class SongLinePanel extends JPanel {
     private JTextField chordsField, lyricsField, sectionLabelField;
     private JLabel lineNumberLabel;
     private JLabel dragHandleLabel;
-    private JTextArea tablatureArea;
+    private TablatureTextArea tablatureArea;
     private final SongLine songLine;
     protected boolean isProgrammaticUpdate = false;
     private FocusAwareBorderPanel innerContentPanel;
-    private Consumer<SongLinePanel> onRemoveCallback;
-    private Consumer<SongLinePanel> onCopyCallback;
-    private Consumer<SongLinePanel> onPasteBelowCallback;
-    private Consumer<SongLinePanel> onDuplicateCallback;
-    private Consumer<SongLinePanel> onFocusCallback;
+    private SongLineActionObserver actionObserver;
     private ChordsInputHandler chordsHandler;
     private TablatureInputHandler tablatureHandler;
     private LyricsInputHandler lyricsHandler;
@@ -76,8 +73,8 @@ public class SongLinePanel extends JPanel {
         this.innerContentPanel.setOpaque(false);
 
         this.innerContentPanel.setOnFocusGainedAction(() -> {
-            if (onFocusCallback != null) {
-                onFocusCallback.accept(this);
+            if (actionObserver != null) {
+                actionObserver.onFocus(this);
             }
         });
 
@@ -115,10 +112,11 @@ public class SongLinePanel extends JPanel {
         removeButton.setMaximumSize(iconBox);
         
         removeButton.addActionListener(e -> {
-            if (this.onRemoveCallback != null) {
-                this.onRemoveCallback.accept(this);
+            if (this.actionObserver != null) {
+                this.actionObserver.onRemove(this);
             }
         });
+
         initContextMenu();
         layoutComponents(removeButton);
 
@@ -162,102 +160,12 @@ public class SongLinePanel extends JPanel {
     }
 
     /**
-     * Initializes the tablature text area, establishes baseline empty strings, 
-     * and attaches its specialized input handler.
+     * Initializes the tablature text area using the extracted TablatureTextArea component,
+     * and attaches its specialized input handler to maintain the structural grid.
      */
     private void initTablatureArea() {
-        tablatureArea = new JTextArea() {
-            /**
-             * Overrides default painting to draw a rounded background.
-             * This prevents the default rectangular background from bleeding 
-             * through the corners of our rounded border.
-             */
-            @Override
-            protected void paintComponent(java.awt.Graphics g) {
-                java.awt.Graphics2D g2d = (java.awt.Graphics2D) g.create();
-                g2d.setRenderingHint(java.awt.RenderingHints.KEY_ANTIALIASING, java.awt.RenderingHints.VALUE_ANTIALIAS_ON);
-                
-                g2d.setColor(getBackground());
-                g2d.fillRoundRect(0, 0, getWidth(), getHeight(), 12, 12);
-                g2d.dispose();
-                
-                super.paintComponent(g);
-            }
-
-            @Override
-            protected void processKeyEvent(KeyEvent ke) {
-                if ((ke.getKeyCode() == KeyEvent.VK_C && ke.isControlDown()) || 
-                    (ke.getKeyCode() == KeyEvent.VK_V && ke.isControlDown())) {
-                    ke.consume();
-                } else {
-                    super.processKeyEvent(ke);
-                }
-            }
-        };
-        
-        // Disable default rectangular opacity so our custom rounded background shows cleanly
-        tablatureArea.setOpaque(false);
-        tablatureArea.setFont(new Font("Monospaced", Font.PLAIN, 12));
-        
-        /**
-         * Dynamically fetch FlatLaf's active theme colors for consistency.
-         */
-        java.awt.Color borderColor = javax.swing.UIManager.getColor("Component.borderColor");
-        java.awt.Color focusColor = javax.swing.UIManager.getColor("Component.focusColor");
-        
-        /**
-         * Create responsive borders. The total inset (padding + border thickness) 
-         * is kept strictly at 5px in both states to prevent the tablature from shifting 
-         * when the component gains focus.
-         */
-        javax.swing.border.Border unfocusedBorder = new javax.swing.border.EmptyBorder(5, 8, 5, 8) {
-            @Override
-            public void paintBorder(java.awt.Component c, java.awt.Graphics g, int x, int y, int width, int height) {
-                java.awt.Graphics2D g2d = (java.awt.Graphics2D) g.create();
-                g2d.setRenderingHint(java.awt.RenderingHints.KEY_ANTIALIASING, java.awt.RenderingHints.VALUE_ANTIALIAS_ON);
-                g2d.setColor(borderColor != null ? borderColor : java.awt.Color.GRAY);
-                g2d.setStroke(new java.awt.BasicStroke(1.0f));
-                g2d.drawRoundRect(x, y, width - 1, height - 1, 12, 12);
-                g2d.dispose();
-            }
-        };
-
-        javax.swing.border.Border focusedBorder = new javax.swing.border.EmptyBorder(5, 8, 5, 8) {
-            @Override
-            public void paintBorder(java.awt.Component c, java.awt.Graphics g, int x, int y, int width, int height) {
-                java.awt.Graphics2D g2d = (java.awt.Graphics2D) g.create();
-                g2d.setRenderingHint(java.awt.RenderingHints.KEY_ANTIALIASING, java.awt.RenderingHints.VALUE_ANTIALIAS_ON);
-                g2d.setColor(focusColor != null ? focusColor : new java.awt.Color(62, 134, 224));
-                g2d.setStroke(new java.awt.BasicStroke(2.0f));
-                // Offset by 1px to account for the thicker stroke preventing clipping
-                g2d.drawRoundRect(x + 1, y + 1, width - 3, height - 3, 12, 12);
-                g2d.dispose();
-            }
-        };
-
-        tablatureArea.setBorder(unfocusedBorder);
-
-        // Attach listener to toggle the focus ring dynamically
-        tablatureArea.addFocusListener(new java.awt.event.FocusAdapter() {
-            @Override
-            public void focusGained(java.awt.event.FocusEvent e) {
-                tablatureArea.setBorder(focusedBorder);
-            }
-
-            @Override
-            public void focusLost(java.awt.event.FocusEvent e) {
-                tablatureArea.setBorder(unfocusedBorder);
-            }
-        });
-        
-        tablatureArea.getInputMap().put(KeyStroke.getKeyStroke(KeyEvent.VK_SPACE, 0), DefaultEditorKit.forwardAction);
-        tablatureArea.getInputMap().put(KeyStroke.getKeyStroke(' '), DefaultEditorKit.forwardAction);
-        
-        Tablature emptyTablature = new Tablature();
-        tablatureArea.setText(emptyTablature.toString());
-
+        tablatureArea = new TablatureTextArea();
         this.tablatureHandler = new TablatureInputHandler(tablatureArea);
-
         this.innerContentPanel.attachFocusTracking(this.innerContentPanel);
     }
 
@@ -306,15 +214,6 @@ public class SongLinePanel extends JPanel {
         tablatureArea.setText(new model.Tablature().toString());
         sectionLabelField.setText("");
         updateSongLine();
-    }
-
-
-    public void setOnCopyCallback(Consumer<SongLinePanel> callback) { 
-        this.onCopyCallback = callback; 
-    }
-    
-    public void setOnPasteBelowCallback(Consumer<SongLinePanel> callback) { 
-        this.onPasteBelowCallback = callback; 
     }
 
 
@@ -524,19 +423,11 @@ public class SongLinePanel extends JPanel {
 }
 
     /**
-     * Sets the callback to be executed when the remove button is clicked.
-     * * @param callback The consumer function to handle panel removal.
+     * Sets the global observer for user actions performed on this panel.
+     * * @param observer The implementation handling the action events.
      */
-    public void setOnRemoveCallback(Consumer<SongLinePanel> callback) {
-        this.onRemoveCallback = callback;
-    }
-
-    public void setOnDuplicateCallback(Consumer<SongLinePanel> callback) { 
-        this.onDuplicateCallback = callback; 
-    }
-
-    public void setOnFocusCallback(Consumer<SongLinePanel> callback) { 
-        this.onFocusCallback = callback; 
+    public void setActionObserver(view.listeners.SongLineActionObserver observer) {
+        this.actionObserver = observer;
     }
 
     /**
@@ -565,8 +456,7 @@ public class SongLinePanel extends JPanel {
     public TablatureInputHandler getTablatureHandler() { return tablatureHandler; }
     public LyricsInputHandler getLyricsHandler() { return lyricsHandler; }
 
-    public Consumer<SongLinePanel> getOnCopyCallback() { return onCopyCallback; }
-    public Consumer<SongLinePanel> getOnPasteBelowCallback() { return onPasteBelowCallback; }
-    public Consumer<SongLinePanel> getOnDuplicateCallback() { return onDuplicateCallback; }
-    public Consumer<SongLinePanel> getOnRemoveCallback() { return onRemoveCallback; }
+    public view.listeners.SongLineActionObserver getActionObserver() { 
+        return actionObserver; 
+    }
 }
