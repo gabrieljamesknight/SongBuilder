@@ -17,6 +17,11 @@ public class SongBuilderMenuBar extends JMenuBar {
     private final Runnable onSaveSongAs;
     private final Runnable onLoadSong;
     private final Runnable onAddLine;
+    private final Runnable onCopyLine;
+    private final Runnable onPasteLine;
+    private final Runnable onDuplicateLine;
+    private final Runnable onClearLine;
+    private final Runnable onDeleteLine;
 
     /**
      * Constructs the menu bar with injected action dependencies.
@@ -28,12 +33,20 @@ public class SongBuilderMenuBar extends JMenuBar {
      * @param onAddLine Callback for adding a new song line.
      */
     public SongBuilderMenuBar(ActionMap actionMap, Runnable onNewSong, Runnable onSaveSong, 
-                              Runnable onSaveSongAs, Runnable onLoadSong, Runnable onAddLine) {
+                              Runnable onSaveSongAs, Runnable onLoadSong, Runnable onAddLine,
+                              Runnable onCopyLine, Runnable onPasteLine, Runnable onDuplicateLine,
+                              Runnable onClearLine, Runnable onDeleteLine) {
         this.onNewSong = onNewSong;
         this.onSaveSong = onSaveSong;
         this.onSaveSongAs = onSaveSongAs;
         this.onLoadSong = onLoadSong;
         this.onAddLine = onAddLine;
+        
+        this.onCopyLine = onCopyLine;
+        this.onPasteLine = onPasteLine;
+        this.onDuplicateLine = onDuplicateLine;
+        this.onClearLine = onClearLine;
+        this.onDeleteLine = onDeleteLine;
 
         buildFileMenu();
         buildEditMenu(actionMap);
@@ -87,6 +100,28 @@ public class SongBuilderMenuBar extends JMenuBar {
         editMenu.add(cutMenuItem);
         editMenu.add(copyMenuItem);
         editMenu.add(pasteMenuItem);
+        editMenu.addSeparator();
+        
+        JMenuItem copyLineItem = new JMenuItem("Copy Line");
+        copyLineItem.addActionListener(e -> onCopyLine.run());
+        
+        JMenuItem pasteLineItem = new JMenuItem("Paste Line Below");
+        pasteLineItem.addActionListener(e -> onPasteLine.run());
+        
+        JMenuItem duplicateLineItem = new JMenuItem("Duplicate Line");
+        duplicateLineItem.addActionListener(e -> onDuplicateLine.run());
+        
+        JMenuItem clearLineItem = new JMenuItem("Clear Line Contents");
+        clearLineItem.addActionListener(e -> onClearLine.run());
+        
+        JMenuItem deleteLineItem = new JMenuItem("Delete Line");
+        deleteLineItem.addActionListener(e -> onDeleteLine.run());
+
+        editMenu.add(copyLineItem);
+        editMenu.add(pasteLineItem);
+        editMenu.add(duplicateLineItem);
+        editMenu.add(clearLineItem);
+        editMenu.add(deleteLineItem);
         
         this.add(editMenu);
     }

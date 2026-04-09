@@ -23,8 +23,16 @@ public class SongBuilderApp {
     public static void main(String[] args) {
         // 1. Try to apply the Dark Theme using FlatLaf's modern setup method
         try {
-            FlatDarkLaf.setup();
-        } catch (Exception ex) {
+            // Apply global rounding to components to eliminate sharp corners
+            javax.swing.UIManager.put("Button.arc", 12);
+            javax.swing.UIManager.put("Component.arc", 12);
+            javax.swing.UIManager.put("TextComponent.arc", 12);
+            
+            // Modernize the scrollbar to look like macOS/Windows 11
+            javax.swing.UIManager.put("ScrollBar.thumbArc", 999);
+            javax.swing.UIManager.put("ScrollBar.thumbInsets", new java.awt.Insets(2, 2, 2, 2));
+
+            FlatDarkLaf.setup();} catch (Exception ex) {
             // Logging at SEVERE level automatically prints the stack trace properly, clearing the hint
             LOGGER.log(Level.SEVERE, "Failed to initialize Dark Mode. Falling back to default UI.", ex);
         }

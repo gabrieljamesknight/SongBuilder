@@ -42,15 +42,27 @@ public class TuningPanel extends JPanel {
         add(tuningLabel);
 
         JPanel fieldsContainer = new JPanel(new FlowLayout());
-        Dimension containerDim = new Dimension(400, 45);
+        Dimension containerDim = new Dimension(400, 50); // Bumped height slightly for new proportions
         fieldsContainer.setPreferredSize(containerDim);
         fieldsContainer.setMaximumSize(containerDim);
 
         for (int i = 5; i >= 0; i--) {
-            JTextField tuningField = new JTextField(initialTunings[i], 2);
-            Dimension fieldDim = new Dimension(35, 30);
+            JTextField tuningField = new JTextField(initialTunings[i].trim());
+            
+            // Slightly wider/taller dimensions look more modern (like mechanical keys)
+            Dimension fieldDim = new Dimension(40, 36);
             tuningField.setPreferredSize(fieldDim);
             tuningField.setHorizontalAlignment(JTextField.CENTER);
+            
+            tuningField.putClientProperty("JComponent.minimumWidth", 0);
+            
+            // Optical Alignment Fix: Counterbalance Swing's right-side caret margin
+            // by injecting exactly 3 pixels of padding on the left.
+            tuningField.putClientProperty("JTextField.padding", new java.awt.Insets(0, 1, 0, 0));
+            tuningField.setMargin(new java.awt.Insets(0, 1, 0, 0));
+            
+            // Increase font size to fill the slightly larger boxes nicely
+            tuningField.setFont(new java.awt.Font("Arial", java.awt.Font.BOLD, 16));
             
             ((AbstractDocument) tuningField.getDocument()).setDocumentFilter(new TuningLengthFilter(2));
             
@@ -71,7 +83,9 @@ public class TuningPanel extends JPanel {
             private void update() {
                 SwingUtilities.invokeLater(() -> {
                     if (onTuningChanged != null) {
-                        onTuningChanged.accept(stringIndex, tuningField.getText());
+                        // Pad the text to exactly 2 characters before sending to the model/listeners
+                        String formattedTuning = String.format("%-2s", tuningField.getText());
+                        onTuningChanged.accept(stringIndex, formattedTuning);
                     }
                 });
             }
@@ -85,7 +99,8 @@ public class TuningPanel extends JPanel {
      */
     public void setTuningSilently(int stringIndex, String tuning) {
         if (stringIndex >= 0 && stringIndex < tuningFields.length) {
-            tuningFields[stringIndex].setText(tuning);
+            // Strip trailing spaces so the GUI only displays the raw characters
+            tuningFields[stringIndex].setText(tuning.trim());
         }
     }
 
@@ -96,7 +111,8 @@ public class TuningPanel extends JPanel {
     public String[] getCurrentTunings() {
         String[] tunings = new String[6];
         for (int i = 0; i < 6; i++) {
-            tunings[i] = tuningFields[i].getText();
+            // Guarantee values retrieved from the GUI always have exactly 2 characters for the model
+            tunings[i] = String.format("%-2s", tuningFields[i].getText());
         }
         return tunings;
     }

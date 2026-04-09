@@ -1,33 +1,25 @@
 package view.components;
 
 import java.awt.Color;
-import java.awt.Component;
 import java.awt.Dimension;
 import java.awt.Font;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
-import java.awt.event.KeyEvent;
-import java.util.function.Consumer;
-
+import controller.SongLineMapper;
 import javax.swing.BorderFactory;
-import javax.swing.Box;
-import javax.swing.BoxLayout;
 import javax.swing.JButton;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JTextArea;
 import javax.swing.JTextField;
-import javax.swing.KeyStroke;
-import javax.swing.SwingUtilities;
 import javax.swing.border.EmptyBorder;
 import javax.swing.text.AbstractDocument;
-import javax.swing.text.DefaultEditorKit;
-
 import model.SongLine;
 import model.Tablature;
 import view.listeners.ChordsInputHandler;
 import view.listeners.LyricsInputHandler;
+import view.listeners.SongLineActionObserver;
 import view.listeners.TablatureInputHandler;
 
 /**
@@ -38,27 +30,48 @@ import view.listeners.TablatureInputHandler;
  */
 public class SongLinePanel extends JPanel {
     private JTextField chordsField, lyricsField, sectionLabelField;
-    private JLabel lineNumberLabel;
     private JLabel dragHandleLabel;
-    private JTextArea tablatureArea;
+    private TablatureTextArea tablatureArea;
     private final SongLine songLine;
-    protected boolean isProgrammaticUpdate = false;
-    private Consumer<SongLinePanel> onRemoveCallback;
+    private FocusAwareBorderPanel innerContentPanel;
+    private SongLineActionObserver actionObserver;
     private ChordsInputHandler chordsHandler;
     private TablatureInputHandler tablatureHandler;
     private LyricsInputHandler lyricsHandler;
-    private Dimension normalSize = null;
+    private SongLineDragVisualizer dragVisualizer;
+    
 
     /**
      * Constructs a new SongLinePanel, initializing the UI components and their respective layout constraints.
      */
     public SongLinePanel() {
         super();
-        this.setLayout(new GridBagLayout());
+        this.setLayout(new java.awt.BorderLayout(0, 5));
+        this.setOpaque(false);
+        
         this.songLine = new SongLine();
         Font lyricsFont = new Font("Monospaced", Font.PLAIN, 16);
 
-        this.setMaximumSize(new Dimension(850, 240));
+        Dimension fixedDimension = new Dimension(850, 280);
+        this.setMinimumSize(fixedDimension);
+        this.setPreferredSize(fixedDimension);
+        this.setMaximumSize(fixedDimension);
+
+        // Initialize the inner panel that will hold the actual song data and receive the border
+        this.innerContentPanel = new FocusAwareBorderPanel(SongLineComponentFactory.createDefaultBorder(), SongLineComponentFactory.createFocusedBorder());
+        this.innerContentPanel.setLayout(new GridBagLayout());
+        this.innerContentPanel.setBackground(new java.awt.Color(45, 48, 52));
+        this.innerContentPanel.setOpaque(false);
+
+        this.innerContentPanel.setOnFocusGainedAction(() -> {
+            if (actionObserver != null) {
+                actionObserver.onFocus(this);
+            }
+        });
+
+        this.setBackground(new java.awt.Color(45, 48, 52));
+        this.setOpaque(false);
+
 
         // --- Initialize Modular Fields ---
         initHeaderComponents();
@@ -66,30 +79,30 @@ public class SongLinePanel extends JPanel {
         initTablatureArea();
         initLyricsField(lyricsFont);
 
-        JButton removeButton = new JButton("🗑");
-        removeButton.setToolTipText("Remove this line");
-        removeButton.setFocusable(false); 
-        removeButton.addActionListener(e -> {
-            if (this.onRemoveCallback != null) {
-                this.onRemoveCallback.accept(this);
+        this.innerContentPanel.attachFocusTracking(this.innerContentPanel);
+
+        HoverButton removeButton = SongLineComponentFactory.createRemoveButton(() -> {
+            if (this.actionObserver != null) {
+                this.actionObserver.onRemove(this);
             }
         });
 
+        initContextMenu();
         layoutComponents(removeButton);
+
+        this.innerContentPanel.attachFocusTracking(this.innerContentPanel);
+        this.dragVisualizer = new SongLineDragVisualizer(this, innerContentPanel, dragHandleLabel, sectionLabelField);
     }
 
     private void initHeaderComponents() {
-        lineNumberLabel = new JLabel("# ");
-        lineNumberLabel.setFont(new Font("Arial", Font.BOLD, 14));
-        lineNumberLabel.setForeground(new Color(150, 150, 150));
-
         sectionLabelField = new JTextField();
-        sectionLabelField.setFont(new Font("Arial", Font.ITALIC | Font.BOLD, 14));
-        sectionLabelField.setForeground(new Color(200, 200, 200));
-        sectionLabelField.setOpaque(false); // Makes the background transparent
-        sectionLabelField.setBorder(BorderFactory.createEmptyBorder(0, 5, 0, 0)); // Removes the border
+        // Make it prominent as a structural divider
+        sectionLabelField.setFont(new Font("Arial", Font.BOLD, 18));
+        sectionLabelField.setForeground(new Color(120, 170, 220)); 
+        sectionLabelField.setOpaque(false);
+        sectionLabelField.setHorizontalAlignment(JTextField.CENTER);
+        sectionLabelField.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
         
-        // Add a document filter to prevent excessively long labels breaking the UI
         ((AbstractDocument) sectionLabelField.getDocument()).setDocumentFilter(new LengthFilter(30));
     }
 
@@ -98,47 +111,29 @@ public class SongLinePanel extends JPanel {
      */
     private void initChordsField() {
         chordsField = new JTextField();
-        chordsField.setFont(new Font("Monospaced", Font.PLAIN, 20));
-        chordsField.setText(" ".repeat(47));
+        chordsField.setFont(new Font("Monospaced", Font.PLAIN, 19));
+        chordsField.setText(" ".repeat(50));
         chordsField.setHorizontalAlignment(JTextField.LEFT);
         
-        LengthFilter lengthFilter = new LengthFilter(50);
+        LengthFilter lengthFilter = new LengthFilter(60);
         ((AbstractDocument) chordsField.getDocument()).setDocumentFilter(lengthFilter);
         
+        // Use the native rounded border and apply necessary padding for text alignment
         chordsField.setBorder(BorderFactory.createCompoundBorder(
-            BorderFactory.createLineBorder(Color.BLACK, 2),
-            new EmptyBorder(0, 30, 0, 0)
+            javax.swing.UIManager.getBorder("TextField.border"),
+            new EmptyBorder(4, 30, 4, 4)
         ));
-
         this.chordsHandler = new ChordsInputHandler(chordsField);
     }
 
     /**
-     * Initializes the tablature text area, establishes baseline empty strings, 
-     * and attaches its specialized input handler.
+     * Initializes the tablature text area using the extracted TablatureTextArea component,
+     * and attaches its specialized input handler to maintain the structural grid.
      */
     private void initTablatureArea() {
-        tablatureArea = new JTextArea() {
-            @Override
-            protected void processKeyEvent(KeyEvent ke) {
-                if ((ke.getKeyCode() == KeyEvent.VK_C && ke.isControlDown()) || 
-                    (ke.getKeyCode() == KeyEvent.VK_V && ke.isControlDown())) {
-                    ke.consume();
-                } else {
-                    super.processKeyEvent(ke);
-                }
-            }
-        };
-        tablatureArea.setFont(new Font("Monospaced", Font.PLAIN, 12));
-        tablatureArea.setBorder(new EmptyBorder(5, 5, 5, 5));
-        
-        tablatureArea.getInputMap().put(KeyStroke.getKeyStroke(KeyEvent.VK_SPACE, 0), DefaultEditorKit.forwardAction);
-        tablatureArea.getInputMap().put(KeyStroke.getKeyStroke(' '), DefaultEditorKit.forwardAction);
-        
-        Tablature emptyTablature = new Tablature();
-        tablatureArea.setText(emptyTablature.toString());
-
+        tablatureArea = new TablatureTextArea();
         this.tablatureHandler = new TablatureInputHandler(tablatureArea);
+        this.innerContentPanel.attachFocusTracking(this.innerContentPanel);
     }
 
     /**
@@ -150,25 +145,51 @@ public class SongLinePanel extends JPanel {
         lyricsField = new JTextField();
         this.lyricsHandler = new LyricsInputHandler(lyricsField, font);
     }
+    
+    private void initContextMenu() {
+        SongLineContextMenu menu = new SongLineContextMenu(this, this::clearContents);
+        menu.attachTo(this, innerContentPanel);
+    }
+
+    public void setForceHighlight(boolean force) {
+        this.innerContentPanel.setForceHighlight(force);
+    }
 
     /**
-     * Arranges the initialized components within the panel using GridBagLayout.
-     * * @param removeButton The button used to trigger the removal of this panel.
+     * Commits the current UI field values into the underlying SongLine model object.
+     */
+    public void updateSongLine() {
+        SongLineMapper.updateModelFromUI(
+            this.songLine, 
+            this.chordsField, 
+            this.lyricsField, 
+            this.tablatureArea, 
+            this.sectionLabelField
+        );
+    }
+
+    /**
+     * Resets the textual content of the panel to an empty, formatted state.
+     */
+    public void clearContents() {
+        SongLineMapper.clearUIContents(
+            this.chordsField, 
+            this.lyricsField, 
+            this.tablatureArea, 
+            this.sectionLabelField
+        );
+        updateSongLine();
+    }
+
+
+    /**
+     * Arranges the initialized components to establish a balanced, professional musical grid.
+     * Integrates the line number and drag handle to share a horizontal axis left of the tablature.
+     *
+     * @param removeButton The button used to trigger the removal of this panel.
      */
     private void layoutComponents(JButton removeButton) {
         int targetWidth = 600;
-        
-        // 1. Header (Line Number & Section Label)
-        JPanel headerPanel = new JPanel();
-        headerPanel.setLayout(new BoxLayout(headerPanel, BoxLayout.X_AXIS));
-        headerPanel.setOpaque(false);
-        // Add 30px left padding so the label perfectly aligns with the chords text
-        headerPanel.setBorder(new EmptyBorder(0, 30, 0, 0)); 
-        headerPanel.setPreferredSize(new Dimension(targetWidth, 25));
-        headerPanel.setMaximumSize(new Dimension(targetWidth, 25));
-        
-        headerPanel.add(lineNumberLabel);
-        headerPanel.add(sectionLabelField);
 
         // 2. Component Dimensions
         Dimension chordsDim = new Dimension(targetWidth, 35);
@@ -184,138 +205,69 @@ public class SongLinePanel extends JPanel {
         lyricsField.setPreferredSize(lyricsDim);
         lyricsField.setMaximumSize(lyricsDim);
 
-        GridBagConstraints gbc = new GridBagConstraints();
-        gbc.fill = GridBagConstraints.NONE;
+        // 3. Drag Handle Setup (Inside the Box)
+        dragHandleLabel = SongLineComponentFactory.createDragHandle();
         
-        // --- ROW 0: Header ---
-        gbc.gridx = 1; gbc.gridy = 0;
-        gbc.insets = new Insets(0, 0, 2, 0); 
-        gbc.anchor = GridBagConstraints.WEST;
-        this.add(headerPanel, gbc);
-
-        // --- ROW 1: Chords ---
-        gbc.gridx = 1; gbc.gridy = 1;
-        gbc.insets = new Insets(0, 0, 5, 0); 
-        gbc.anchor = GridBagConstraints.CENTER;
-        this.add(chordsField, gbc);
-
-        // --- ROW 2: Tablature & Remove Button ---
-        gbc.gridx = 1; gbc.gridy = 2; 
-        gbc.insets = new Insets(0, 0, 5, 0);
-        gbc.anchor = GridBagConstraints.CENTER; 
-        this.add(tablatureArea, gbc);
-
-        gbc.gridx = 2; gbc.gridy = 2;
-        gbc.insets = new Insets(0, 15, 5, 0); 
-        gbc.anchor = GridBagConstraints.WEST;
-        this.add(removeButton, gbc);
-
-        // --- ROW 3: Lyrics ---
-        gbc.gridx = 1; gbc.gridy = 3;
-        gbc.insets = new Insets(0, 0, 15, 0); 
-        gbc.anchor = GridBagConstraints.CENTER;
-        this.add(lyricsField, gbc);
-
-        // --- ROW 4: Drag Handle ---
-        dragHandleLabel = new JLabel("≡");
-        dragHandleLabel.setName("dragHandle");
-        dragHandleLabel.setFont(new Font("Arial", Font.BOLD, 28));
-        dragHandleLabel.setForeground(new Color(100, 100, 100));
-        dragHandleLabel.setCursor(java.awt.Cursor.getPredefinedCursor(java.awt.Cursor.HAND_CURSOR));
-        dragHandleLabel.setToolTipText("Click and drag to reorder this line");
-
-        gbc.gridx = 0; 
-        gbc.gridy = 2;
-        gbc.insets = new Insets(0, 20, 5, 15);
-        gbc.anchor = GridBagConstraints.EAST;
-        this.add(dragHandleLabel, gbc);
+        
+        // --- Left Margin Panel (Contains ONLY the Line Number) ---
+        JPanel leftMarginPanel = new JPanel(new GridBagLayout());
+        leftMarginPanel.setOpaque(false);
+        GridBagConstraints marginGbc = new GridBagConstraints();
+        marginGbc.insets = new Insets(4, 0, 0, 15);
+        marginGbc.anchor = GridBagConstraints.CENTER;
+        
+        // COLUMN 0: Line Number andDrag Handle
+        innerContentPanel.add(dragHandleLabel, GridBagHelper.createConstraints(0, 1, 1.0, new Insets(0, 0, 5, 10), GridBagConstraints.CENTER));
+        
+        // COLUMN 1: Chords, Tablature, and Lyrics (weightx = 0.0 to maintain preferred width)
+        innerContentPanel.add(chordsField, GridBagHelper.createConstraints(1, 0, 0.0, new Insets(10, 0, 5, 0), GridBagConstraints.WEST));
+        innerContentPanel.add(tablatureArea, GridBagHelper.createConstraints(1, 1, 0.0, new Insets(5, 0, 5, 0), GridBagConstraints.WEST));
+        innerContentPanel.add(lyricsField, GridBagHelper.createConstraints(1, 2, 0.0, new Insets(5, 0, 10, 0), GridBagConstraints.WEST));
+        
+        // COLUMN 2: Remove Button
+        innerContentPanel.add(removeButton, GridBagHelper.createConstraints(2, 1, 1.0, new Insets(0, 8, 7, 0), GridBagConstraints.CENTER));
+        
+        // Assemble the outer panel
+        this.add(sectionLabelField, java.awt.BorderLayout.NORTH);
+        this.add(innerContentPanel, java.awt.BorderLayout.CENTER);
     }
 
     /**
-     * Visually updates the tuning of a specific string in the tablature area without 
-     * triggering document listener loops.
-     * * @param stringIndex The 0-based index of the guitar string.
-     * @param newTuning   The new tuning character(s) to apply.
+     * Delegates the visual tuning update to the tablature handler to safely bypass listeners.
      */
     public void updateTuningVisually(int stringIndex, String newTuning) {
-        String formattedTuning = String.format("%-2s", newTuning);
-        String currentText = tablatureArea.getText();
-        String[] lines = currentText.split("\n");
-        
-        if (stringIndex >= 0 && stringIndex < lines.length) {
-            if (lines[stringIndex].length() >= 2) {
-                lines[stringIndex] = formattedTuning + lines[stringIndex].substring(2);
-                SwingUtilities.invokeLater(() -> {
-                    isProgrammaticUpdate = true;
-                    try {
-                        tablatureArea.setText(String.join("\n", lines));
-                    } finally {
-                        isProgrammaticUpdate = false;
-                    }
-                });
-            }
+        if (tablatureHandler != null) {
+            tablatureHandler.updateTuningVisually(stringIndex, newTuning);
         }
     }
+
 
     /**
      * Converts this panel into a visual drop-zone placeholder during a drag event.
-     * This keeps the component in the window hierarchy so mouse focus is never lost.
      */
     public void setPlaceholderMode(boolean active) {
-        if (active) {
-            normalSize = getSize();
-            setPreferredSize(normalSize);
-            setMinimumSize(normalSize);
-            // Hide all children EXCEPT the drag handle so it keeps catching mouse events
-            for (Component c : getComponents()) {
-                if (c != dragHandleLabel) {
-                    c.setVisible(false);
-                }
-            }
-            setBorder(BorderFactory.createDashedBorder(new Color(100, 130, 200), 3, 5, 2, false));
-        } else {
-            // Restore normal view
-            for (Component c : getComponents()) {
-                c.setVisible(true);
-            }
-            setPreferredSize(null);
-            setMinimumSize(null);
-            setBorder(null);
+        if (dragVisualizer != null) {
+            dragVisualizer.setPlaceholderMode(active);
         }
-        revalidate();
-        repaint();
-    }
-
-    public void setLineNumber(int number) {
-        lineNumberLabel.setText(String.valueOf(number) + ". ");
     }
 
     /**
-     * Sets the callback to be executed when the remove button is clicked.
-     * * @param callback The consumer function to handle panel removal.
+     * Sets the global observer for user actions performed on this panel.
+     * * @param observer The implementation handling the action events.
      */
-    public void setOnRemoveCallback(Consumer<SongLinePanel> callback) {
-        this.onRemoveCallback = callback;
-    }
-
-    /**
-     * Commits the current UI field values into the underlying SongLine model object.
-     */
-    public void updateSongLine() {
-        songLine.setChords(getChords());
-        songLine.setLyrics(getLyrics());
-        songLine.setTablature(getTablature());
-        songLine.setSectionLabel(sectionLabelField.getText().trim());
+    public void setActionObserver(view.listeners.SongLineActionObserver observer) {
+        this.actionObserver = observer;
     }
 
 
     public JLabel getDragHandle() { return dragHandleLabel; }
     public JTextField getSectionLabelField() { return sectionLabelField; }
     public SongLine getSongLine() { return songLine; }
+
     public String getChords() { return chordsField.getText(); }
     public String getLyrics() { return lyricsField.getText(); }
     public Tablature getTablature() { return Tablature.parseTablature(tablatureArea.getText()); }
-    
+
     public JTextField getChordsField() { return chordsField; }
     public JTextField getLyricsField() { return lyricsField; }
     public JTextArea getTablatureArea() { return tablatureArea; }
@@ -323,4 +275,6 @@ public class SongLinePanel extends JPanel {
     public ChordsInputHandler getChordsHandler() { return chordsHandler; }
     public TablatureInputHandler getTablatureHandler() { return tablatureHandler; }
     public LyricsInputHandler getLyricsHandler() { return lyricsHandler; }
+    
+    public view.listeners.SongLineActionObserver getActionObserver() { return actionObserver;}
 }
