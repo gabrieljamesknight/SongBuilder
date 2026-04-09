@@ -96,6 +96,12 @@ public class SongBuilderGUI {
         leftSidebar = new view.components.SongNavigatorSidebar();
         rightSidebar = new view.components.SongMetadataSidebar();
         
+        gridArea.setSectionsChangedCallback(() -> {
+            leftSidebar.updateSections(gridArea.getPanels(), panel -> {
+                gridArea.scrollToPanel(panel);
+            });
+        });
+        
         JPanel mainContentPanel = new JPanel(new BorderLayout());
         mainContentPanel.add(leftSidebar, BorderLayout.WEST);
         mainContentPanel.add(gridArea, BorderLayout.CENTER);

@@ -37,13 +37,6 @@ public class SongNavigatorSidebar extends JPanel {
         sectionsPanel.setBackground(new Color(30, 32, 36));
         
         // Initial placeholder items, to be populated dynamically later
-        addSection("Intro");
-        addSection("Verse 1");
-        addSection("Chorus");
-        addSection("Verse 2");
-        addSection("Bridge");
-        addSection("Chorus");
-        addSection("Outro");
         
         JScrollPane scrollPane = new JScrollPane(sectionsPanel);
         scrollPane.setBorder(null);
@@ -52,10 +45,25 @@ public class SongNavigatorSidebar extends JPanel {
     }
 
     /**
+     * Updates the navigator list with the currently defined sections.
+     */
+    public void updateSections(java.util.List<SongLinePanel> panels, java.util.function.Consumer<SongLinePanel> onSectionClick) {
+        sectionsPanel.removeAll();
+        for (SongLinePanel panel : panels) {
+            String name = panel.getSectionLabelField().getText().trim();
+            if (!name.isEmpty()) {
+                addSection(name, panel, onSectionClick);
+            }
+        }
+        sectionsPanel.revalidate();
+        sectionsPanel.repaint();
+    }
+
+    /**
      * Adds a section label to the navigator list.
      * @param name The name of the section.
      */
-    public void addSection(String name) {
+    private void addSection(String name, SongLinePanel targetPanel, java.util.function.Consumer<SongLinePanel> onSectionClick) {
         JLabel sectionLabel = new JLabel("  " + name);
         sectionLabel.setFont(new Font("Segoe UI", Font.PLAIN, 12));
         sectionLabel.setForeground(new Color(180, 180, 180));
@@ -66,6 +74,27 @@ public class SongNavigatorSidebar extends JPanel {
         wrapper.setBackground(new Color(30, 32, 36));
         wrapper.add(sectionLabel, BorderLayout.WEST);
         wrapper.setMaximumSize(new Dimension(Integer.MAX_VALUE, 30));
+        
+        // Make it clickable to scroll to the panel
+        wrapper.setCursor(new java.awt.Cursor(java.awt.Cursor.HAND_CURSOR));
+        wrapper.addMouseListener(new java.awt.event.MouseAdapter() {
+            @Override
+            public void mouseClicked(java.awt.event.MouseEvent e) {
+                if (onSectionClick != null) {
+                    onSectionClick.accept(targetPanel);
+                }
+            }
+            
+            @Override
+            public void mouseEntered(java.awt.event.MouseEvent e) {
+                wrapper.setBackground(new Color(50, 52, 56));
+            }
+            
+            @Override
+            public void mouseExited(java.awt.event.MouseEvent e) {
+                wrapper.setBackground(new Color(30, 32, 36));
+            }
+        });
         
         sectionsPanel.add(wrapper);
         sectionsPanel.add(Box.createVerticalStrut(2));
