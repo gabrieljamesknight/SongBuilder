@@ -10,6 +10,7 @@ import java.util.function.Consumer;
 import javax.swing.Box;
 import javax.swing.BoxLayout;
 import javax.swing.JFrame;
+import javax.swing.JPanel;
 
 import model.Song;
 import model.SongLine;
@@ -31,6 +32,8 @@ public class SongBuilderGUI {
     private SongHeaderPanel headerPanel;
     private TuningPanel tuningPanel;
     private SongGridArea gridArea;
+    private view.components.SongNavigatorSidebar leftSidebar;
+    private view.components.SongMetadataSidebar rightSidebar;
     
     private Runnable newSongAction = () -> {};
     private Runnable saveSongAction = () -> {};
@@ -67,25 +70,53 @@ public class SongBuilderGUI {
 
     private void setupUI() {
         frame = new JFrame("SongBuilder");
-        frame.setLayout(new BoxLayout(frame.getContentPane(), BoxLayout.Y_AXIS));
+        frame.setLayout(new BorderLayout());
         frame.setPreferredSize(new Dimension(920, 800));
+
+        JPanel topPanel = new JPanel();
+        topPanel.setLayout(new BoxLayout(topPanel, BoxLayout.Y_AXIS));
 
         headerPanel = new SongHeaderPanel(
             () -> gridArea.addLineAction(), 
             () -> saveSongAction.run(), 
             () -> loadSongAction.run()
         );
-        frame.add(Box.createRigidArea(new Dimension(0, 10)));
-        frame.add(headerPanel);
-        frame.add(Box.createRigidArea(new Dimension(0, 10)));
+        topPanel.add(Box.createRigidArea(new Dimension(0, 10)));
+        topPanel.add(headerPanel);
+        topPanel.add(Box.createRigidArea(new Dimension(0, 10)));
         
         String[] defaultTunings = {"e", "B", "G", "D", "A", "E"};
         tuningPanel = new TuningPanel(defaultTunings, (index, tuning) -> gridArea.propagateTuningChange(index, tuning));
-        frame.add(tuningPanel);
-        frame.add(Box.createRigidArea(new Dimension(0, 10)));
+        topPanel.add(tuningPanel);
+        topPanel.add(Box.createRigidArea(new Dimension(0, 10)));
+
+        frame.add(topPanel, BorderLayout.NORTH);
 
         gridArea = new SongGridArea();
-        frame.add(gridArea, BorderLayout.CENTER);
+        leftSidebar = new view.components.SongNavigatorSidebar();
+        rightSidebar = new view.components.SongMetadataSidebar();
+        
+        JPanel mainContentPanel = new JPanel(new BorderLayout());
+        mainContentPanel.add(leftSidebar, BorderLayout.WEST);
+        mainContentPanel.add(gridArea, BorderLayout.CENTER);
+        mainContentPanel.add(rightSidebar, BorderLayout.EAST);
+        
+        frame.add(mainContentPanel, BorderLayout.CENTER);
+
+        frame.addComponentListener(new java.awt.event.ComponentAdapter() {
+            @Override
+            public void componentResized(java.awt.event.ComponentEvent e) {
+                boolean showSidebars = frame.getWidth() >= 1200;
+                if (leftSidebar.isVisible() != showSidebars) {
+                    leftSidebar.setVisible(showSidebars);
+                    rightSidebar.setVisible(showSidebars);
+                    frame.revalidate();
+                }
+            }
+        });
+        
+        leftSidebar.setVisible(false);
+        rightSidebar.setVisible(false);
 
         updateMenuBar();
         setupGlobalFocusClearing();

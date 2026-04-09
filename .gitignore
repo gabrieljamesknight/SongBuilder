@@ -1,6 +1,7 @@
 # Project specific
 dumper.py
 *.json
+gemini.md
 
 # IDE specific files
 .vscode/
