@@ -45,6 +45,7 @@ public class TuningPanel extends JPanel {
         Dimension containerDim = new Dimension(400, 50); // Bumped height slightly for new proportions
         fieldsContainer.setPreferredSize(containerDim);
         fieldsContainer.setMaximumSize(containerDim);
+        fieldsContainer.setAlignmentX(Component.CENTER_ALIGNMENT);
 
         for (int i = 5; i >= 0; i--) {
             JTextField tuningField = new JTextField(initialTunings[i].trim());

@@ -70,6 +70,8 @@ public class SongHeaderPanel extends JPanel {
 
         JLabel songNameLabel = new JLabel("Song Name:");
         songNameLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
+        songNameField.setAlignmentX(Component.CENTER_ALIGNMENT);
+        buttonPanel.setAlignmentX(Component.CENTER_ALIGNMENT);
         
         add(songNameLabel);
         add(songNameField);

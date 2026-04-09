@@ -57,7 +57,15 @@ public class SongGridArea extends JPanel {
         songLinePanelContainer.setBackground(new java.awt.Color(25, 27, 30));
         songLinePanelContainer.setFocusable(true);
 
-        scrollPane = new JScrollPane(songLinePanelContainer);
+        JPanel outerContainer = new JPanel(new java.awt.GridBagLayout());
+        outerContainer.setBackground(new java.awt.Color(25, 27, 30));
+        java.awt.GridBagConstraints gbc = new java.awt.GridBagConstraints();
+        gbc.weightx = 1.0;
+        gbc.weighty = 1.0;
+        gbc.anchor = java.awt.GridBagConstraints.NORTH;
+        outerContainer.add(songLinePanelContainer, gbc);
+
+        scrollPane = new JScrollPane(outerContainer);
         scrollPane.getViewport().setBackground(new java.awt.Color(25, 27, 30));
         scrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_ALWAYS);    
         scrollPane.getVerticalScrollBar().setUnitIncrement(15);

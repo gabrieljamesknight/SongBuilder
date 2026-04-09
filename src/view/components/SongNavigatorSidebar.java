@@ -22,7 +22,12 @@ public class SongNavigatorSidebar extends JPanel {
 
     public SongNavigatorSidebar() {
         setLayout(new BorderLayout());
-        setPreferredSize(new Dimension(200, 0));
+        
+        int scrollBarWidth = (javax.swing.UIManager.get("ScrollBar.width") != null) 
+            ? (Integer) javax.swing.UIManager.get("ScrollBar.width") 
+            : new javax.swing.JScrollBar(javax.swing.JScrollBar.VERTICAL).getPreferredSize().width;
+        setPreferredSize(new Dimension(250 + scrollBarWidth, 0));
+        
         setBackground(new Color(30, 32, 36));
         setBorder(BorderFactory.createMatteBorder(0, 0, 0, 1, new Color(50, 52, 56)));
 
