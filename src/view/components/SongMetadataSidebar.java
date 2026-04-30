@@ -23,6 +23,11 @@ import javax.swing.border.EmptyBorder;
  */
 public class SongMetadataSidebar extends JPanel {
 
+    private JSpinner capoSpinner;
+    private JSpinner tempoSpinner;
+    private JTextField timeSignatureField;
+    private JTextArea scratchpadArea;
+
     public SongMetadataSidebar() {
         setLayout(new BorderLayout());
         setPreferredSize(new Dimension(250, 0));
@@ -41,13 +46,16 @@ public class SongMetadataSidebar extends JPanel {
         contentPanel.add(titleLabel);
         contentPanel.add(Box.createVerticalStrut(20));
 
-        contentPanel.add(createLabeledField("CAPO", new JSpinner(new SpinnerNumberModel(0, 0, 24, 1))));
+        capoSpinner = new JSpinner(new SpinnerNumberModel(0, 0, 24, 1));
+        contentPanel.add(createLabeledField("CAPO", capoSpinner));
         contentPanel.add(Box.createVerticalStrut(15));
         
-        contentPanel.add(createLabeledField("TEMPO (BPM)", new JSpinner(new SpinnerNumberModel(120, 30, 300, 1))));
+        tempoSpinner = new JSpinner(new SpinnerNumberModel(120, 30, 300, 1));
+        contentPanel.add(createLabeledField("TEMPO (BPM)", tempoSpinner));
         contentPanel.add(Box.createVerticalStrut(15));
         
-        contentPanel.add(createLabeledField("TIME SIGNATURE", new JTextField("4/4")));
+        timeSignatureField = new JTextField("4/4");
+        contentPanel.add(createLabeledField("TIME SIGNATURE", timeSignatureField));
         contentPanel.add(Box.createVerticalStrut(20));
 
         JLabel scratchpadLabel = new JLabel("Scratchpad Notes");
@@ -57,7 +65,7 @@ public class SongMetadataSidebar extends JPanel {
         contentPanel.add(scratchpadLabel);
         contentPanel.add(Box.createVerticalStrut(10));
 
-        JTextArea scratchpadArea = new JTextArea();
+        scratchpadArea = new JTextArea();
         scratchpadArea.setLineWrap(true);
         scratchpadArea.setWrapStyleWord(true);
         scratchpadArea.setBackground(new Color(40, 42, 46));
@@ -71,6 +79,38 @@ public class SongMetadataSidebar extends JPanel {
         contentPanel.add(scrollPane);
 
         add(contentPanel, BorderLayout.CENTER);
+    }
+
+    public int getCapo() {
+        return (Integer) capoSpinner.getValue();
+    }
+
+    public void setCapo(int capo) {
+        capoSpinner.setValue(capo);
+    }
+
+    public int getTempo() {
+        return (Integer) tempoSpinner.getValue();
+    }
+
+    public void setTempo(int tempo) {
+        tempoSpinner.setValue(tempo);
+    }
+
+    public String getTimeSignature() {
+        return timeSignatureField.getText();
+    }
+
+    public void setTimeSignature(String timeSignature) {
+        timeSignatureField.setText(timeSignature);
+    }
+
+    public String getScratchpadNotes() {
+        return scratchpadArea.getText();
+    }
+
+    public void setScratchpadNotes(String notes) {
+        scratchpadArea.setText(notes);
     }
 
     private JPanel createLabeledField(String labelText, javax.swing.JComponent field) {

@@ -154,6 +154,10 @@ public class SongBuilderGUI {
 
     public void refreshUIFromModel(Song song) {
         headerPanel.setSongName(song.getName());
+        setCapo(song.getCapo());
+        setTempo(song.getTempo());
+        setTimeSignature(song.getTimeSignature());
+        setScratchpadNotes(song.getScratchpadNotes());
         
         if (!song.getSongLines().isEmpty()) {
             SongLine firstLine = song.getSongLines().get(0);
@@ -168,6 +172,10 @@ public class SongBuilderGUI {
 
     public void resetGUI() {
         headerPanel.setSongName("");
+        setCapo(0);
+        setTempo(120);
+        setTimeSignature("4/4");
+        setScratchpadNotes("");
         String[] defaultTunings = {"e", "B", "G", "D", "A", "E"};
         for (int i = 0; i < 6; i++) {
             tuningPanel.setTuningSilently(i, defaultTunings[i]);
@@ -191,4 +199,13 @@ public class SongBuilderGUI {
     public String getSongName() { return headerPanel.getSongName(); }
     public List<SongLinePanel> getSongLinePanels() { return gridArea.getPanels(); }
     public String[] getTuningFieldsData() { return tuningPanel.getCurrentTunings(); }
+    
+    public int getCapo() { return rightSidebar.getCapo(); }
+    public void setCapo(int capo) { rightSidebar.setCapo(capo); }
+    public int getTempo() { return rightSidebar.getTempo(); }
+    public void setTempo(int tempo) { rightSidebar.setTempo(tempo); }
+    public String getTimeSignature() { return rightSidebar.getTimeSignature(); }
+    public void setTimeSignature(String ts) { rightSidebar.setTimeSignature(ts); }
+    public String getScratchpadNotes() { return rightSidebar.getScratchpadNotes(); }
+    public void setScratchpadNotes(String notes) { rightSidebar.setScratchpadNotes(notes); }
 }
