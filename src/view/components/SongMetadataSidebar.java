@@ -119,12 +119,23 @@ public class SongMetadataSidebar extends JPanel {
             JSpinner sp = (JSpinner) field;
             sp.setBorder(BorderFactory.createLineBorder(new Color(60, 62, 66)));
             JSpinner.DefaultEditor editor = (JSpinner.DefaultEditor) sp.getEditor();
-            editor.getTextField().setBackground(new Color(40, 42, 46));
-            editor.getTextField().setForeground(new Color(220, 220, 220));
-            editor.getTextField().setCaretColor(Color.WHITE);
-            editor.getTextField().setHorizontalAlignment(JTextField.LEFT);
-            editor.getTextField().setBorder(BorderFactory.createEmptyBorder(4, 6, 4, 6));
-            editor.getTextField().addMouseListener(caretFixer);
+            JTextField tf = editor.getTextField();
+            tf.setBackground(new Color(40, 42, 46));
+            tf.setForeground(new Color(220, 220, 220));
+            tf.setCaretColor(Color.WHITE);
+            tf.setHorizontalAlignment(JTextField.LEFT);
+            tf.setBorder(BorderFactory.createEmptyBorder(4, 6, 4, 6));
+            tf.addMouseListener(caretFixer);
+            
+            // Preserve caret position when value changes (e.g. via spinner arrows)
+            sp.addChangeListener(e -> {
+                int caretPos = tf.getCaretPosition();
+                javax.swing.SwingUtilities.invokeLater(() -> {
+                    try {
+                        tf.setCaretPosition(Math.min(caretPos, tf.getText().length()));
+                    } catch (IllegalArgumentException ex) {}
+                });
+            });
         }
         
         panel.add(label);
