@@ -6,11 +6,28 @@ import java.util.ArrayList;
 public class Song implements Serializable {
     private String name;
     private ArrayList<SongLine> songLines;
+    
+    private int capo = 0;
+    private int tempo = 120;
+    private String timeSignature = "4/4";
+    private String scratchpadNotes = "";
 
     public Song(String name) {
         this.name = name;
         this.songLines = new ArrayList<>();
     }
+
+    public int getCapo() { return capo; }
+    public void setCapo(int capo) { this.capo = capo; }
+    
+    public int getTempo() { return tempo; }
+    public void setTempo(int tempo) { this.tempo = tempo; }
+    
+    public String getTimeSignature() { return timeSignature; }
+    public void setTimeSignature(String timeSignature) { this.timeSignature = timeSignature; }
+    
+    public String getScratchpadNotes() { return scratchpadNotes; }
+    public void setScratchpadNotes(String scratchpadNotes) { this.scratchpadNotes = scratchpadNotes; }
 
     public String getName() {
         return name;

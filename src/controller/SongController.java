@@ -129,5 +129,10 @@ public class SongController {
         String name = gui.getSongName();
         if (name.trim().isEmpty()) name = "Untitled";
         songManager.getCurrentSong().setName(name);
+        
+        songManager.getCurrentSong().setCapo(gui.getCapo());
+        songManager.getCurrentSong().setTempo(gui.getTempo());
+        songManager.getCurrentSong().setTimeSignature(gui.getTimeSignature());
+        songManager.getCurrentSong().setScratchpadNotes(gui.getScratchpadNotes());
     }
 }

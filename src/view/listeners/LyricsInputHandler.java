@@ -16,8 +16,8 @@ import view.components.LengthFilter;
 public class LyricsInputHandler {
 
     private final JTextField lyricsField;
-    private static final int MAX_LYRIC_LENGTH = 56;
-    private static final int LEFT_PADDING = 30;
+    private static final int MAX_LYRIC_LENGTH = 55;
+    private static final int LEFT_PADDING = 28;
 
     /**
      * Constructs the handler and applies the necessary formatting to the target field.

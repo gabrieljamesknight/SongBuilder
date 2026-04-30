@@ -14,6 +14,8 @@ import javax.swing.JScrollBar;
 import javax.swing.JScrollPane;
 import javax.swing.SwingUtilities;
 import javax.swing.border.EmptyBorder;
+import javax.swing.event.DocumentEvent;
+import javax.swing.event.DocumentListener;
 
 import model.Song;
 import model.SongLine;
@@ -33,6 +35,7 @@ public class SongGridArea extends JPanel {
     private final PanelDragDropHandler dragDropHandler;
     
     private Consumer<Integer> removeLineCallback = (index) -> {};
+    private Runnable sectionsChangedCallback = () -> {};
     private SongLine clipboardLine = null;
     private SongLinePanel lastFocusedPanel = null;
 
@@ -54,7 +57,15 @@ public class SongGridArea extends JPanel {
         songLinePanelContainer.setBackground(new java.awt.Color(25, 27, 30));
         songLinePanelContainer.setFocusable(true);
 
-        scrollPane = new JScrollPane(songLinePanelContainer);
+        JPanel outerContainer = new JPanel(new java.awt.GridBagLayout());
+        outerContainer.setBackground(new java.awt.Color(25, 27, 30));
+        java.awt.GridBagConstraints gbc = new java.awt.GridBagConstraints();
+        gbc.weightx = 1.0;
+        gbc.weighty = 1.0;
+        gbc.anchor = java.awt.GridBagConstraints.NORTH;
+        outerContainer.add(songLinePanelContainer, gbc);
+
+        scrollPane = new JScrollPane(outerContainer);
         scrollPane.getViewport().setBackground(new java.awt.Color(25, 27, 30));
         scrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_ALWAYS);    
         scrollPane.getVerticalScrollBar().setUnitIncrement(15);
@@ -74,6 +85,30 @@ public class SongGridArea extends JPanel {
         this.removeLineCallback = callback;
     }
 
+    public void setSectionsChangedCallback(Runnable callback) {
+        this.sectionsChangedCallback = callback;
+    }
+
+    private void notifySectionsChanged() {
+        if (sectionsChangedCallback != null) {
+            SwingUtilities.invokeLater(sectionsChangedCallback);
+        }
+    }
+
+    private void attachSectionListener(SongLinePanel panel) {
+        panel.getSectionLabelField().getDocument().addDocumentListener(new DocumentListener() {
+            @Override public void insertUpdate(DocumentEvent e) { notifySectionsChanged(); }
+            @Override public void removeUpdate(DocumentEvent e) { notifySectionsChanged(); }
+            @Override public void changedUpdate(DocumentEvent e) { notifySectionsChanged(); }
+        });
+    }
+
+    public void scrollToPanel(SongLinePanel panel) {
+        SwingUtilities.invokeLater(() -> {
+            panel.scrollRectToVisible(new java.awt.Rectangle(0, 0, panel.getWidth(), panel.getHeight()));
+        });
+    }
+
     public void addLineAction() {
         SongLinePanel newPanel = new SongLinePanel();
         newPanel.setActionObserver(panelActionObserver);
@@ -85,6 +120,7 @@ public class SongGridArea extends JPanel {
         newPanel.getDragHandle().addMouseListener(dragDropHandler);
         newPanel.getDragHandle().addMouseMotionListener(dragDropHandler);
         
+        attachSectionListener(newPanel);
         songLinePanels.add(newPanel);
         songLinePanelContainer.add(newPanel);
         
@@ -92,6 +128,7 @@ public class SongGridArea extends JPanel {
             JScrollBar vertical = scrollPane.getVerticalScrollBar();
             vertical.setValue(vertical.getMaximum());
         });
+        notifySectionsChanged();
         revalidate();
         repaint();
     }
@@ -105,6 +142,7 @@ public class SongGridArea extends JPanel {
         if (index != -1) {
             removeLineCallback.accept(index);
             songLinePanels.remove(index);
+            notifySectionsChanged();
             rebuildContainer();
         }
     }
@@ -135,9 +173,11 @@ public class SongGridArea extends JPanel {
             newPanel.getDragHandle().addMouseListener(dragDropHandler);
             newPanel.getDragHandle().addMouseMotionListener(dragDropHandler);
             
+            attachSectionListener(newPanel);
             songLinePanelContainer.add(newPanel);
             songLinePanels.add(newPanel);
         }
+        notifySectionsChanged();
         revalidate();
         repaint();
     }
@@ -157,6 +197,7 @@ public class SongGridArea extends JPanel {
     private void updateAllLineNumbers() {
         for (int i = 0; i < songLinePanels.size(); i++) {
         }
+        notifySectionsChanged();
     }
 
     private void rebuildContainer() {
@@ -199,7 +240,9 @@ public class SongGridArea extends JPanel {
         newPanel.getDragHandle().addMouseListener(dragDropHandler);
         newPanel.getDragHandle().addMouseMotionListener(dragDropHandler);
 
+        attachSectionListener(newPanel);
         songLinePanels.add(targetIndex + 1, newPanel);
+        notifySectionsChanged();
         rebuildContainer();
     }
 
